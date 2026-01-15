@@ -1,4 +1,4 @@
-# MaVERiC (IJCAI)
+# MaVERiC 
 
 MaVERiC is a research prototype for strategic fact-checking under budget constraints.
 It simulates adversarial multi-agent debates, parses them into an argumentation graph,
