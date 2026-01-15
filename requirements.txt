@@ -1,0 +1,12 @@
+openai>=1.0.0
+requests
+networkx
+pandas
+matplotlib
+seaborn
+python-dotenv
+tqdm
+tabulate
+datasets
+wikipedia
+duckduckgo-search

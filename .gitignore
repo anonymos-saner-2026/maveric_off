@@ -1,0 +1,32 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Local experiment outputs
+/runs/
+/tmp.html
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
+maveric_ijcai/src/data/*.jsonl
