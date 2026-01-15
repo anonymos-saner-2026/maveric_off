@@ -140,6 +140,74 @@ def numerical_suite() -> List[ClaimCase]:
     return cases
 
 
+def adversarial_suite() -> List[ClaimCase]:
+    """Adversarial cases designed to trick the toolkit"""
+    cases = [
+        # Near-miss dates (off by 1 year)
+        ClaimCase("adv_ww2_1944", "WEB_SEARCH", "World War II ended in 1944.", False, ["adversarial", "date"]), # 1945
+        ClaimCase("adv_berlin_wall_1990", "WEB_SEARCH", "The Berlin Wall fell in 1990.", False, ["adversarial", "date"]), # 1989
+        # Entity name variations (typos/missing letters)
+        ClaimCase("adv_steve_job", "WEB_SEARCH", "Steve Job founded Apple.", True, ["adversarial", "entity"]), # Jobs (plural)
+        ClaimCase("adv_mark_zuckerberg", "WEB_SEARCH", "Mark Zuckerburg founded Facebook.", True, ["adversarial", "entity"]), # Typo
+        # Double negatives
+        ClaimCase("adv_double_neg_1", "PYTHON_EXEC", "It's not true that the Earth isn't round.", True, ["adversarial", "logic"]),
+        ClaimCase("adv_double_neg_2", "PYTHON_EXEC", "It is not false that 5 is greater than 3.", True, ["adversarial", "logic"]),
+        # Misleading context
+        ClaimCase("adv_mislead_1", "WEB_SEARCH", "Napoleon was born in France.", False, ["adversarial", "misleading"]), # Corsica
+        ClaimCase("adv_mislead_2", "WEB_SEARCH", "Einstein received only one Nobel Prize.", True, ["adversarial", "misleading"]),
+    ]
+    return cases
+
+
+def edge_case_suite() -> List[ClaimCase]:
+    """Edge cases for PYTHON_EXEC and WEB_SEARCH"""
+    cases = [
+        # Float precision traps
+        ClaimCase("edge_float_1", "PYTHON_EXEC", "0.1 + 0.2 equals 0.3", True, ["edge", "float"]), # Technically false in FP but conceptually true
+        ClaimCase("edge_float_2", "PYTHON_EXEC", "0.1 + 0.1 + 0.1 equals 0.3", True, ["edge", "float"]),
+        # Very large numbers
+        ClaimCase("edge_googol", "WEB_SEARCH", "A googol is 10 to the power of 100.", True, ["edge", "large_num"]),
+        ClaimCase("edge_googolplex", "WEB_SEARCH", "A googolplex is 10 to the power of a googol.", True, ["edge", "large_num"]),
+        # Complex negations
+        ClaimCase("edge_neg_not_not", "PYTHON_EXEC", "The square root of 16 is not not 4.", True, ["edge", "negation"]),
+        # Boundary cases
+        ClaimCase("edge_century_leap", "PYTHON_EXEC", "2100 is a leap year.", False, ["edge", "boundary"]), # Century rule
+        ClaimCase("edge_y2k_leap", "PYTHON_EXEC", "2000 was a leap year.", True, ["edge", "boundary"]), # Exception to century rule
+    ]
+    return cases
+
+
+def compound_suite() -> List[ClaimCase]:
+    """Multi-part claims that require verifying multiple facts"""
+    cases = [
+        # Both parts true
+        ClaimCase("comp_einstein_nobel", "WEB_SEARCH", "Albert Einstein won the Nobel Prize in Physics in 1921 for the photoelectric effect.", True, ["compound", "multi"]),
+        ClaimCase("comp_apollo_11", "WEB_SEARCH", "Apollo 11 was the first mission to land humans on the Moon and it happened in 1969.", True, ["compound", "multi"]),
+        # One part false
+        ClaimCase("comp_partial_false_1", "WEB_SEARCH", "Apollo 11 landed on Mars and returned safely to Earth.", False, ["compound", "partial"]),
+        ClaimCase("comp_partial_false_2", "WEB_SEARCH", "Einstein won the Nobel Prize in 1905 for relativity theory.", False, ["compound", "partial"]), # Wrong year and reason
+        # Both parts false
+        ClaimCase("comp_both_false", "WEB_SEARCH", "Tesla was founded by Bill Gates in 1995.", False, ["compound", "both_false"]),
+    ]
+    return cases
+
+
+def unit_conversion_suite() -> List[ClaimCase]:
+    """Extended unit conversion tests"""
+    cases = [
+        # Distance
+        ClaimCase("unit_km_mi_1", "PYTHON_EXEC", "1 kilometer equals approximately 0.621 miles.", True, ["unit", "distance"]),
+        ClaimCase("unit_km_mi_2", "PYTHON_EXEC", "50 kilometers equals approximately 31 miles.", True, ["unit", "distance"]),
+        # Temperature
+        ClaimCase("unit_temp_c_f_1", "PYTHON_EXEC", "100 degrees Celsius equals 212 degrees Fahrenheit.", True, ["unit", "temp"]),
+        ClaimCase("unit_temp_c_f_2", "PYTHON_EXEC", "Room temperature (20C) equals 68 degrees Fahrenheit.", True, ["unit", "temp"]),
+        # Time
+        ClaimCase("unit_time_1", "PYTHON_EXEC", "24 hours equals 1440 minutes.", True, ["unit", "time"]),
+        ClaimCase("unit_time_2", "PYTHON_EXEC", "1 week contains 168 hours.", True, ["unit", "time"]),
+    ]
+    return cases
+
+
 def build_suite(which: str) -> List[ClaimCase]:
     suites = {
         "sanity": sanity_suite_v2,
@@ -147,7 +215,13 @@ def build_suite(which: str) -> List[ClaimCase]:
         "subtle": subtle_suite_v2,
         "temporal": temporal_suite,
         "numerical": numerical_suite,
-        "all": lambda: sanity_suite_v2() + hoax_suite_v2() + subtle_suite_v2() + temporal_suite() + numerical_suite()
+        "adversarial": adversarial_suite,
+        "edge": edge_case_suite,
+        "compound": compound_suite,
+        "unit": unit_conversion_suite,
+        "all": lambda: (sanity_suite_v2() + hoax_suite_v2() + subtle_suite_v2() + 
+                        temporal_suite() + numerical_suite() + adversarial_suite() + 
+                        edge_case_suite() + compound_suite() + unit_conversion_suite())
     }
     if which not in suites:
         raise ValueError(f"Unknown suite '{which}'. Available: {list(suites.keys())}")
