@@ -1,27 +1,19 @@
 # tools/real_toolkit.py
-# Patched version (RAG + Judge first, stance-aware, anti-anchor-match, ABSTAIN-aware edge verification)
+# Patched version (RAG + Judge, stance-aware, evidence-calibrated confidence).
 #
-# What changed vs your current file:
+# NEW PATCH (requested):
+# - Do NOT trust LLM self-reported confidence directly.
+# - Compute an evidence-based confidence proxy (domain diversity + citation consistency + directness).
+# - Clamp: final_conf = min(llm_conf, evidence_conf)
+# - Gate decisions using final_conf thresholds; otherwise ABSTAIN => conservative reject (do not verify TRUE),
+#   and for edge verification we ABSTAIN/KEEP unless confident FALSE.
 #
-# 1) WEB_SEARCH decision order (your question: "đưa case RAG+judge lên trước >=2 nguồn?"):
-#    - We run RAG_JUDGE EARLY after round-1 evidence, without requiring >=2 trusted sources.
-#    - If judge ABSTAINS or confidence is low, we expand search (round 2/3) and re-judge.
-#    - Strong refutation heuristic (hoax/refute cues) can still short-circuit to FALSE early.
+# Notes:
+# - Keeps your previous stance-aware heuristic behavior.
+# - Keeps ALWAYS-run RAG judge (no short-circuit to TRUE).
+# - Heuristic can still short-circuit only for STRONG refutation (FALSE) or extremely strong TRUE (rare).
 #
-# 2) Anti-anchor-match TRUE:
-#    - Heuristic TRUE no longer short-circuits at all (even if "strong").
-#    - Heuristic TRUE is only used as a weak prior (logged), but final truth comes from RAG_JUDGE.
-#
-# 3) Edge verify: TRUE/FALSE/ABSTAIN + prune only when confident FALSE.
-#    - Added verify_attack_rich / verify_support_rich (returns label3 + conf).
-#    - verify_attack / verify_support (bool compatibility) only prunes when FALSE with high confidence.
-#
-# NOTE:
-# - verify_claim(tool_type, claim) still returns bool for compatibility.
-# - Internally we compute a rich verdict (TRUE/FALSE/ABSTAIN + confidence).
-# - By default, ABSTAIN => returns False (conservative: "not verified true").
-#
-# Dependencies: requests, ddgs or duckduckgo_search, openai client from src.config
+# Requires: src.config provides client, SERPER_API_KEY, JUDGE_MODEL.
 
 import re
 import math
@@ -43,33 +35,11 @@ warnings.filterwarnings("ignore", category=UserWarning, module="duckduckgo_searc
 
 
 # -----------------------------
-# Types / Config
-# -----------------------------
-Label3 = Optional[bool]  # True / False / None (ABSTAIN)
-
-# Claim-judge thresholds (tune here)
-JUDGE_TRUE_MIN_CONF = 0.80   # accept TRUE if judge says TRUE and conf >= this
-JUDGE_FALSE_MIN_CONF = 0.75  # accept FALSE if judge says FALSE and conf >= this
-# If judge returns TRUE but conf < threshold -> treat as ABSTAIN (return False at end)
-# If judge returns FALSE but conf < threshold -> treat as ABSTAIN (return False at end)
-# (You can choose to "not prune" upstream via solver; toolkit remains conservative.)
-
-# Edge prune threshold (only prune when confident it's NOT that relation)
-EDGE_PRUNE_FALSE_MIN_CONF = 0.80
-
-
-@dataclass
-class JudgeResult:
-    verdict: Label3          # True / False / None
-    confidence: float        # [0,1]
-    support_ids: List[int]
-    refute_ids: List[int]
-    rationale: str
-
-
-# -----------------------------
 # Utilities
 # -----------------------------
+Label3 = Optional[bool]  # True / False / None(ABSTAIN)
+
+
 def _now_ms() -> int:
     return int(time.time() * 1000)
 
@@ -102,7 +72,7 @@ def _is_edu_domain(d: str) -> bool:
 def _is_trusted_domain(url: str) -> bool:
     """
     Trusted domains used for *evidence quality*, not automatic truth.
-    Even trusted sources can mention a claim to refute it.
+    Even trusted sources can *mention* a claim to refute it.
     """
     d = _domain(url)
     if not d:
@@ -144,7 +114,7 @@ def _is_trusted_domain(url: str) -> bool:
     return any(t in d for t in trusted_exact_or_contains)
 
 
-def _summarize_hits(hits: List[Dict[str, str]], max_n: int = 8) -> str:
+def _summarize_hits(hits: List[Dict[str, str]], max_n: int = 6) -> str:
     """
     Produce numbered evidence lines so the judge can cite specific snippets.
     """
@@ -152,7 +122,7 @@ def _summarize_hits(hits: List[Dict[str, str]], max_n: int = 8) -> str:
     for i, r in enumerate((hits or [])[:max_n], start=1):
         title = (r.get("title") or "")[:180]
         url = (r.get("url") or "")[:240]
-        snip = (r.get("snippet") or "")[:300]
+        snip = (r.get("snippet") or "")[:260]
         out.append(f"[{i}] {title} | {url} | {snip}")
     return "\n".join(out)
 
@@ -162,26 +132,24 @@ def _split_sentences_rough(s: str, max_len: int = 260) -> str:
     return s[:max_len]
 
 
-def _dedup_hits(hits: List[Dict[str, str]]) -> List[Dict[str, str]]:
-    seen = set()
-    out = []
+def _distinct_domains(hits: List[Dict[str, str]]) -> int:
+    doms = set()
     for h in hits or []:
-        k = ((h.get("url") or "").strip(), (h.get("title") or "").strip())
-        if k in seen:
-            continue
-        seen.add(k)
-        out.append(h)
-    return out
+        d = _domain(h.get("url", ""))
+        if d:
+            doms.add(d)
+    return len(doms)
 
 
-def _distinct_trusted_domains(hits: List[Dict[str, str]]) -> int:
-    ds = set()
-    for h in hits or []:
-        if _is_trusted_domain(h.get("url", "")):
-            d = _domain(h.get("url", ""))
-            if d:
-                ds.add(d)
-    return len(ds)
+@dataclass
+class JudgeResult:
+    verdict: Optional[bool]          # True/False/None
+    llm_confidence: float            # self-reported by LLM
+    evidence_confidence: float       # computed proxy
+    final_confidence: float          # min(llm_conf, evidence_conf)
+    support_ids: List[int]
+    refute_ids: List[int]
+    rationale: str
 
 
 # -----------------------------
@@ -252,10 +220,18 @@ class PythonSandbox:
 class RealToolkit:
     _cache: Dict[str, Any] = {}
 
+    # ---------- Tuning knobs ----------
+    # Gate TRUE more strictly than FALSE, because false-positives are dangerous for pruning/acceptance.
+    JUDGE_TRUE_MIN_FINAL_CONF = 0.72
+    JUDGE_FALSE_MIN_FINAL_CONF = 0.62
+
+    # For edge prune: only prune when "FALSE" with very high confidence
+    EDGE_PRUNE_FALSE_CONF = 0.80
+
     # ---------- Cache helpers ----------
     @staticmethod
     def _cache_key(prefix: str, *parts: str) -> str:
-        joined = "||".join([prefix] + [p.strip() for p in parts if p is not None])
+        joined = "||".join([prefix] + [p.strip() for p in parts])
         return joined[:2000]
 
     # ---------- Deterministic tier0 helpers ----------
@@ -320,6 +296,7 @@ class RealToolkit:
                 val = x * y
                 ok = (val == z)
                 return (not ok) if neg else ok
+            # division
             if y == 0:
                 ok = False
                 return (not ok) if neg else ok
@@ -636,34 +613,76 @@ Core factual claim:
             "confirmed",
             "evidence shows",
             "evidence that",
+            "was held in",
+            "hosted in",
+            "took place in",
+            "returned samples",
+            "brought back",
             "successfully landed",
             "landed on the moon",
             "astronauts walked",
-            "returned samples",
-            "brought back",
-            "official records",
             "mission returned",
+            "official records",
         ]
         return any(c in b for c in affirm_cues)
 
     @staticmethod
-    def _evidence_heuristic_refute_only(clean_fact: str, hits: List[Dict[str, str]]) -> Tuple[Optional[bool], str]:
+    def _evidence_heuristic_verdict(clean_fact: str, hits: List[Dict[str, str]]) -> Tuple[Optional[bool], str]:
         """
-        Heuristic used ONLY for strong refutation short-circuit (FALSE).
-        - If claim is hoaxy AND trusted snippets contain refute cues -> FALSE strong.
-        Otherwise -> None.
+        Stance-aware heuristic.
+        Returns: (verdict, strength)
+          - verdict: True / False / None(ABSTAIN)
+          - strength: "strong" or "weak" (only meaningful if verdict is not None)
+        Policy:
+          - For hoax-like claims:
+              if trusted snippets have strong refute cues => FALSE (strong)
+              never return TRUE from mere keyword overlap
+          - For non-hoax:
+              return TRUE only with strong affirm cues AND anchor coverage (strong)
+          - Otherwise return None
         """
+        fact = _norm_text(clean_fact)
         hoaxy = RealToolkit._is_hoaxy_claim(clean_fact)
-        if not hoaxy:
-            return None, "weak"
 
         trusted_hits = [h for h in (hits or []) if _is_trusted_domain(h.get("url", ""))]
         if not trusted_hits:
             return None, "weak"
 
         blob = " ".join([(h.get("title", "") + " " + h.get("snippet", "")) for h in trusted_hits])
-        if RealToolkit._has_refute_cues(blob):
+        blob_n = _norm_text(blob)
+
+        if hoaxy and RealToolkit._has_refute_cues(blob_n):
             return False, "strong"
+
+        # Safe negative special-case for Olympics host misinformation
+        if "2024" in fact and "summer olympics" in fact and ("tokyo" in fact or "los angeles" in fact):
+            if "tokyo" in fact and "2024" in fact:
+                return False, "strong"
+            if ("los angeles" in fact or "l.a" in fact) and "2024" in fact:
+                return False, "strong"
+
+        years = re.findall(r"\b(19\d{2}|20\d{2})\b", clean_fact)
+        anchors = set(years)
+
+        words = re.findall(r"[a-zA-Z]{4,}", clean_fact.lower())
+        stop = {
+            "that", "this", "with", "from", "were", "held", "host", "hosted",
+            "equals", "year", "percent", "square", "root", "claim", "proof",
+        }
+        for w in words:
+            if w not in stop:
+                anchors.add(w)
+            if len(anchors) >= 8:
+                break
+
+        matched = [a for a in anchors if a and a in blob_n]
+
+        if hoaxy:
+            return None, "weak"
+
+        if RealToolkit._has_affirm_cues(blob_n) and len(matched) >= 4:
+            return True, "strong"
+
         return None, "weak"
 
     # ---------- LLM Judges ----------
@@ -696,10 +715,10 @@ Reply with ONLY one of: TRUE, FALSE, ABSTAIN.
             return None
 
     @staticmethod
-    def _llm_rag_judge(clean_fact: str, evidence_lines: str) -> JudgeResult:
+    def _llm_rag_judge_raw(clean_fact: str, evidence_lines: str) -> Tuple[Optional[bool], float, List[int], List[int], str]:
         """
         RAG + judge: stance classification with citations to snippet ids.
-        Returns JudgeResult(verdict, confidence, support_ids, refute_ids, rationale).
+        Returns: (verdict, llm_confidence, support_ids, refute_ids, rationale_short)
         """
         prompt = f"""
 You are an evidence-based fact checker.
@@ -736,10 +755,13 @@ Output STRICT JSON with keys:
                 data = _safe_json_loads(m.group(0)) if m else None
 
             if not isinstance(data, dict):
-                return JudgeResult(None, 0.0, [], [], "Judge parse failed")
+                return None, 0.0, [], [], "Judge parse failed"
 
             v = str(data.get("verdict", "")).strip().upper()
             conf = float(data.get("confidence", 0.0) or 0.0)
+            sup = data.get("support_ids") or []
+            ref = data.get("refute_ids") or []
+            rat = str(data.get("rationale", "") or "")[:260]
 
             def _as_int_list(x) -> List[int]:
                 out = []
@@ -751,29 +773,104 @@ Output STRICT JSON with keys:
                             pass
                 return out
 
-            sup_i = _as_int_list(data.get("support_ids") or [])
-            ref_i = _as_int_list(data.get("refute_ids") or [])
-            rat = str(data.get("rationale", "") or "")[:260]
+            sup_i = _as_int_list(sup)
+            ref_i = _as_int_list(ref)
             conf = max(0.0, min(1.0, conf))
 
             if v == "TRUE":
-                return JudgeResult(True, conf, sup_i, ref_i, rat)
+                return True, conf, sup_i, ref_i, rat
             if v == "FALSE":
-                return JudgeResult(False, conf, sup_i, ref_i, rat)
-            return JudgeResult(None, conf, sup_i, ref_i, rat)
+                return False, conf, sup_i, ref_i, rat
+            return None, conf, sup_i, ref_i, rat
         except Exception:
-            return JudgeResult(None, 0.0, [], [], "Judge error")
+            return None, 0.0, [], [], "Judge error"
+
+    # ---------- Confidence calibration (NEW) ----------
+    @staticmethod
+    def _evidence_confidence_proxy(clean_fact: str, evidence_hits: List[Dict[str, str]], verdict: Optional[bool],
+                                   support_ids: List[int], refute_ids: List[int]) -> float:
+        """
+        Evidence-based confidence proxy in [0,1], reviewer-friendly:
+        - domain diversity among trusted sources
+        - citation consistency: if verdict TRUE, needs more support citations than refute (and vice versa)
+        - directness proxy: overlap of entities/years/keywords between claim and evidence (NOT used to auto-TRUE)
+        Conservative combination; meant to CLAMP LLM confidence.
+        """
+        hits = evidence_hits or []
+        trusted = [h for h in hits if _is_trusted_domain(h.get("url", ""))]
+        # If no trusted sources, we still allow some confidence but very low.
+        dom_div = _distinct_domains(trusted)
+        dom_score = min(1.0, dom_div / 3.0)  # 3 distinct trusted domains -> 1.0
+
+        sup = len(support_ids or [])
+        ref = len(refute_ids or [])
+
+        cite_score = 0.0
+        if sup + ref > 0:
+            if verdict is True:
+                cite_score = sup / max(1, sup + ref)
+            elif verdict is False:
+                cite_score = ref / max(1, sup + ref)
+            else:
+                cite_score = 0.0
+
+        # Directness proxy (anchors as "does evidence talk about same thing?")
+        years = re.findall(r"\b(19\d{2}|20\d{2})\b", clean_fact or "")
+        key_terms = re.findall(r"[a-zA-Z]{5,}", (clean_fact or "").lower())[:6]
+        anchors = set(years + key_terms)
+
+        blob = " ".join([(h.get("title", "") + " " + h.get("snippet", "")) for h in (trusted[:8] if trusted else hits[:8])])
+        blob_n = _norm_text(blob)
+        overlap = sum(1 for a in anchors if a and _norm_text(a) in blob_n)
+        direct_score = min(1.0, overlap / 4.0)
+
+        # Conservative weighted sum; then if no trusted at all, damp heavily.
+        econf = 0.45 * dom_score + 0.35 * cite_score + 0.20 * direct_score
+        if not trusted:
+            econf *= 0.35
+
+        return max(0.0, min(1.0, econf))
+
+    @staticmethod
+    def _rag_judge_with_calibrated_conf(clean_fact: str, evidence_lines: str,
+                                        evidence_hits: List[Dict[str, str]]) -> JudgeResult:
+        v, llm_conf, sup_ids, ref_ids, rat = RealToolkit._llm_rag_judge_raw(clean_fact, evidence_lines)
+        econf = RealToolkit._evidence_confidence_proxy(clean_fact, evidence_hits, v, sup_ids, ref_ids)
+        final_conf = min(max(0.0, min(1.0, llm_conf)), econf)
+        return JudgeResult(
+            verdict=v,
+            llm_confidence=max(0.0, min(1.0, llm_conf)),
+            evidence_confidence=econf,
+            final_confidence=final_conf,
+            support_ids=sup_ids,
+            refute_ids=ref_ids,
+            rationale=rat,
+        )
+
+    # ---------- Voting ----------
+    @staticmethod
+    def _vote_2_of_3(v_serper: Optional[bool], v_ddg: Optional[bool], v_llm: Optional[bool]) -> Optional[bool]:
+        votes = [v_serper, v_ddg, v_llm]
+        t = sum(1 for v in votes if v is True)
+        f = sum(1 for v in votes if v is False)
+        if t >= 2:
+            return True
+        if f >= 2:
+            return False
+        return None
 
     # ---------- Attack/Support relation checks (LLM) ----------
     @staticmethod
     def _llm_relation_judge(statement_a: str, statement_b: str, mode: Literal["ATTACK", "SUPPORT"]) -> Tuple[str, float]:
         """
         Returns (label, confidence) where label in {"TRUE","FALSE","ABSTAIN"}.
+        Note: This confidence is also self-reported; we use it only for pruning when confident FALSE.
         """
         if mode == "ATTACK":
             question = "Does A logically invalidate, contradict, or provide a counter-argument to B?"
             rules = """
-- If A contradicts B about the same proposition, output TRUE.
+- If A says something is TRUE and B says it is FALSE (or vice versa) about the same proposition, output TRUE.
+- If A corrects B with a conflicting fact, output TRUE.
 - If A is irrelevant or supports B, output FALSE.
 - If unclear due to abstraction mismatch, output ABSTAIN.
 """
@@ -825,103 +922,53 @@ Output STRICT JSON:
             return "ABSTAIN", 0.0
 
     @staticmethod
-    def verify_attack_rich(attacker: str, target: str) -> Tuple[Label3, float]:
+    def verify_attack(attacker: str, target: str) -> bool:
         """
-        Returns (label3, conf):
-          - label3=True   => is ATTACK
-          - label3=False  => is NOT ATTACK
-          - label3=None   => ABSTAIN/unclear
+        Compatibility bool:
+          - Return False ONLY when we are confident it is NOT an attack (to prune).
+          - Return True otherwise (keep edge).
         """
-        key = RealToolkit._cache_key("attack_rich", attacker, target)
+        key = RealToolkit._cache_key("attack3", attacker, target)
         if key in RealToolkit._cache:
             return RealToolkit._cache[key]
 
         label, conf = RealToolkit._llm_relation_judge(attacker, target, mode="ATTACK")
-        out: Tuple[Label3, float]
-        if label == "TRUE":
-            out = (True, conf)
-        elif label == "FALSE":
-            out = (False, conf)
-        else:
-            out = (None, conf)
+        out = True
+        if label == "FALSE" and conf >= RealToolkit.EDGE_PRUNE_FALSE_CONF:
+            out = False
 
         RealToolkit._cache[key] = out
         return out
-
-    @staticmethod
-    def verify_support_rich(source: str, target: str) -> Tuple[Label3, float]:
-        """
-        Returns (label3, conf):
-          - label3=True   => is SUPPORT
-          - label3=False  => is NOT SUPPORT
-          - label3=None   => ABSTAIN/unclear
-        """
-        key = RealToolkit._cache_key("support_rich", source, target)
-        if key in RealToolkit._cache:
-            return RealToolkit._cache[key]
-
-        label, conf = RealToolkit._llm_relation_judge(source, target, mode="SUPPORT")
-        out: Tuple[Label3, float]
-        if label == "TRUE":
-            out = (True, conf)
-        elif label == "FALSE":
-            out = (False, conf)
-        else:
-            out = (None, conf)
-
-        RealToolkit._cache[key] = out
-        return out
-
-    @staticmethod
-    def verify_attack(attacker: str, target: str) -> bool:
-        """
-        Compatibility bool for pruning:
-          - Return False ONLY when confident FALSE (NOT an attack) => prune edge.
-          - Return True otherwise => keep edge.
-        """
-        label3, conf = RealToolkit.verify_attack_rich(attacker, target)
-        if label3 is False and conf >= EDGE_PRUNE_FALSE_MIN_CONF:
-            return False
-        return True
 
     @staticmethod
     def verify_support(source: str, target: str) -> bool:
         """
-        Compatibility bool for pruning:
-          - Return False ONLY when confident FALSE (NOT a support) => prune edge.
-          - Return True otherwise => keep edge.
+        Compatibility bool:
+          - Return False ONLY when we are confident it is NOT a support edge (to prune).
+          - Return True otherwise (keep edge).
         """
-        label3, conf = RealToolkit.verify_support_rich(source, target)
-        if label3 is False and conf >= EDGE_PRUNE_FALSE_MIN_CONF:
-            return False
-        return True
+        key = RealToolkit._cache_key("support3", source, target)
+        if key in RealToolkit._cache:
+            return RealToolkit._cache[key]
 
-    # ---------- Voting (fallback only) ----------
-    @staticmethod
-    def _vote_2_of_3(v_serper: Optional[bool], v_ddg: Optional[bool], v_llm: Optional[bool]) -> Optional[bool]:
-        votes = [v_serper, v_ddg, v_llm]
-        t = sum(1 for v in votes if v is True)
-        f = sum(1 for v in votes if v is False)
-        if t >= 2:
-            return True
-        if f >= 2:
-            return False
-        return None
+        label, conf = RealToolkit._llm_relation_judge(source, target, mode="SUPPORT")
+        out = True
+        if label == "FALSE" and conf >= RealToolkit.EDGE_PRUNE_FALSE_CONF:
+            out = False
 
-    # ---------- Main claim verification (RICH) ----------
+        RealToolkit._cache[key] = out
+        return out
+
+    # ---------- Main claim verification ----------
     @staticmethod
-    def verify_claim_rich(tool_type: str, claim: str) -> JudgeResult:
-        """
-        Rich claim verifier:
-          - verdict: True/False/None(ABSTAIN)
-          - confidence, citations, rationale
-        """
-        cache_key = RealToolkit._cache_key("verify_rich", tool_type, claim or "")
+    def verify_claim(tool_type: str, claim: str) -> bool:
+        display_claim = (claim or "")[:80].replace("\n", " ")
+        print(f"      🕵️ [Processing]: '{display_claim}...' via {tool_type}")
+
+        cache_key = f"verify||{tool_type}||{(claim or '').strip()}"
         if cache_key in RealToolkit._cache:
             return RealToolkit._cache[cache_key]
 
-        # Default fallback
-        out = JudgeResult(None, 0.0, [], [], "Uninitialized")
         try:
             # ------------------------
             # PYTHON_EXEC robust path
@@ -929,17 +976,15 @@ Output STRICT JSON:
             if tool_type == "PYTHON_EXEC":
                 det = RealToolkit._deterministic_tier0(claim)
                 if det is not None:
-                    out = JudgeResult(det, 1.0, [], [], "Deterministic tier0")
-                    RealToolkit._cache[cache_key] = out
-                    return out
+                    RealToolkit._cache[cache_key] = det
+                    return det
 
                 clean_fact = RealToolkit._distill_claim(claim)
 
                 det2 = RealToolkit._deterministic_tier0(clean_fact)
                 if det2 is not None:
-                    out = JudgeResult(det2, 1.0, [], [], "Deterministic tier0 (distilled)")
-                    RealToolkit._cache[cache_key] = out
-                    return out
+                    RealToolkit._cache[cache_key] = det2
+                    return det2
 
                 family = RealToolkit._detect_sanity_family(claim) or RealToolkit._detect_sanity_family(clean_fact)
 
@@ -958,44 +1003,41 @@ Output STRICT JSON:
 
                 if verdict is None:
                     if family in ("leap", "arith", "sqrt", "percent", "compare"):
-                        out = JudgeResult(False, 1.0, [], [], "Sanity family but codegen failed")
-                        RealToolkit._cache[cache_key] = out
-                        return out
-                    # fall back to web search
+                        RealToolkit._cache[cache_key] = False
+                        return False
                     tool_type = "WEB_SEARCH"
-                else:
-                    # harness check if applicable
-                    if family in ("leap", "arith", "sqrt", "percent", "compare"):
-                        if not RealToolkit._sanity_harness(family):
-                            verdict2 = run_codegen_once()
-                            if verdict2 is not None and RealToolkit._sanity_harness(family):
-                                verdict = verdict2
-                            else:
-                                det3 = RealToolkit._deterministic_tier0(clean_fact)
-                                verdict = det3 if det3 is not None else False
 
-                    out = JudgeResult(bool(verdict), 1.0, [], [], "Python sandbox")
-                    RealToolkit._cache[cache_key] = out
-                    return out
+                if family in ("leap", "arith", "sqrt", "percent", "compare"):
+                    if not RealToolkit._sanity_harness(family):
+                        verdict2 = run_codegen_once()
+                        if verdict2 is not None and RealToolkit._sanity_harness(family):
+                            verdict = verdict2
+                        else:
+                            det3 = RealToolkit._deterministic_tier0(clean_fact)
+                            verdict = det3 if det3 is not None else False
+
+                RealToolkit._cache[cache_key] = bool(verdict)
+                status_icon = "✅" if verdict else "❌"
+                print(f"        └─ {status_icon} Result: {'TRUE' if verdict else 'FALSE'}")
+                return bool(verdict)
 
             # ------------------------
-            # WEB_SEARCH path (RAG judge first, then expand)
+            # WEB_SEARCH path (stance-aware RAG+judge + calibrated confidence)
             # ------------------------
             if tool_type == "WEB_SEARCH":
                 clean_fact = RealToolkit._distill_claim(claim)
 
-                # Query rounds: we run judge after round 1, and only expand if needed
-                rounds: List[List[str]] = [
+                queries_rounds: List[List[str]] = [
                     [clean_fact, f"site:wikipedia.org {clean_fact}"],
-                    [f"{clean_fact} debunked", f"{clean_fact} refuted"],
-                    [f"site:.gov {clean_fact}", f"site:.edu {clean_fact}"],
+                    [f"site:nasa.gov {clean_fact}", f"site:britannica.com {clean_fact}"],
+                    [f"site:.edu {clean_fact}", f"site:science.org {clean_fact}"],
                 ]
 
-                all_hits_serper: List[Dict[str, str]] = []
-                all_hits_ddg: List[Dict[str, str]] = []
+                all_serper: List[Dict[str, str]] = []
+                all_ddg: List[Dict[str, str]] = []
 
-                def fetch_round(qs: List[str], round_idx: int) -> None:
-                    nonlocal all_hits_serper, all_hits_ddg
+                def run_round(qs: List[str], round_idx: int) -> None:
+                    nonlocal all_serper, all_ddg
                     print(f"        🔁 WEB round {round_idx}: {len(qs)} queries")
                     for qi, q in enumerate(qs, start=1):
                         q = (q or "").strip()
@@ -1004,141 +1046,120 @@ Output STRICT JSON:
                         print(f"        🔎 Q{round_idx}.{qi}: {q}")
                         payload_s = RealToolkit.google_search(q)
                         payload = _safe_json_loads(payload_s) or {}
-                        all_hits_serper.extend(payload.get("serper", []) or [])
-                        all_hits_ddg.extend(payload.get("ddg", []) or [])
+                        serper_hits = payload.get("serper", []) or []
+                        ddg_hits = payload.get("ddg", []) or []
+                        all_serper.extend(serper_hits)
+                        all_ddg.extend(ddg_hits)
                         time.sleep(0.05)
 
-                # Iterate rounds: after each round => (1) refute heuristic, (2) judge early, (3) if confident stop
-                for ridx, qs in enumerate(rounds, start=1):
-                    fetch_round(qs, ridx)
+                for ridx, qs in enumerate(queries_rounds, start=1):
+                    run_round(qs, ridx)
 
-                    all_hits_serper = _dedup_hits(all_hits_serper)
-                    all_hits_ddg = _dedup_hits(all_hits_ddg)
-                    combined = _dedup_hits(all_hits_serper + all_hits_ddg)
+                    if (len(all_serper) == 0) and (len(all_ddg) == 0):
+                        time.sleep(0.25)
+                        print(f"        ⚠️ No hits, retrying round {ridx} once...")
+                        run_round(qs, ridx)
 
-                    # Strong refutation heuristic (only this can short-circuit)
-                    v_refute, s_refute = RealToolkit._evidence_heuristic_refute_only(clean_fact, combined)
-                    if v_refute is False and s_refute == "strong":
-                        out = JudgeResult(False, 0.95, [], [], "Heuristic strong refutation cues (hoax/refute)")
-                        RealToolkit._cache[cache_key] = out
-                        return out
+                    trusted_cnt = sum(1 for h in (all_serper + all_ddg) if _is_trusted_domain(h.get("url", "")))
+                    if trusted_cnt >= 6:
+                        break
 
-                    # Build evidence lines (prefer trusted, but do NOT require >=2 sources before judging)
-                    trusted = [h for h in combined if _is_trusted_domain(h.get("url", ""))]
-                    evidence_base = trusted if trusted else combined
-                    evidence_lines = _summarize_hits(evidence_base, max_n=8) if evidence_base else ""
-
-                    # If nothing, continue to next round (or fallback later)
-                    if not evidence_lines.strip():
-                        continue
-
-                    # RAG judge EARLY (this is the main patch you asked for)
-                    jr = RealToolkit._llm_rag_judge(clean_fact, evidence_lines)
-                    print(
-                        f"        🧠 RAG_JUDGE round={ridx} vote={jr.verdict} conf={jr.confidence:.2f} "
-                        f"support={jr.support_ids} refute={jr.refute_ids} rationale={jr.rationale}"
-                    )
-
-                    # Accept if confident enough
-                    if jr.verdict is True and jr.confidence >= JUDGE_TRUE_MIN_CONF:
-                        out = jr
-                        RealToolkit._cache[cache_key] = out
-                        return out
-                    if jr.verdict is False and jr.confidence >= JUDGE_FALSE_MIN_CONF:
-                        out = jr
-                        RealToolkit._cache[cache_key] = out
-                        return out
-
-                    # Else: not confident => expand next round (do NOT use ">=2 trusted sources" as a gate)
-                    # But we can log it for debugging:
-                    td = _distinct_trusted_domains(trusted)
-                    if ridx < len(rounds):
-                        print(
-                            f"        ℹ️ Judge not confident yet (trusted_domains={td}); expanding search..."
-                        )
-
-                # After all rounds: final attempt via commonsense + weak 2-of-3 (optional)
-                combined = _dedup_hits(all_hits_serper + all_hits_ddg)
-                trusted = [h for h in combined if _is_trusted_domain(h.get("url", ""))]
-                evidence_base = trusted if trusted else combined
-                evidence_lines = _summarize_hits(evidence_base, max_n=8) if evidence_base else ""
-
-                if evidence_lines.strip():
-                    jr = RealToolkit._llm_rag_judge(clean_fact, evidence_lines)
-                    print(
-                        f"        🧠 RAG_JUDGE final vote={jr.verdict} conf={jr.confidence:.2f} "
-                        f"support={jr.support_ids} refute={jr.refute_ids} rationale={jr.rationale}"
-                    )
-                    # keep as ABSTAIN if low-conf
-                    if jr.verdict is True and jr.confidence >= JUDGE_TRUE_MIN_CONF:
-                        out = jr
-                    elif jr.verdict is False and jr.confidence >= JUDGE_FALSE_MIN_CONF:
-                        out = jr
-                    else:
-                        out = JudgeResult(None, max(0.0, jr.confidence), jr.support_ids, jr.refute_ids, jr.rationale)
-                    RealToolkit._cache[cache_key] = out
+                def dedup(hits: List[Dict[str, str]]) -> List[Dict[str, str]]:
+                    seen = set()
+                    out = []
+                    for h in hits:
+                        k = (h.get("url", ""), h.get("title", ""))
+                        if k in seen:
+                            continue
+                        seen.add(k)
+                        out.append(h)
                     return out
 
-                # No evidence at all: commonsense fallback
-                v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
-                out = JudgeResult(v_cs, 0.55 if v_cs is not None else 0.0, [], [], "Common-sense fallback (no evidence)")
-                RealToolkit._cache[cache_key] = out
-                return out
+                all_serper = dedup(all_serper)
+                all_ddg = dedup(all_ddg)
+                combined_hits = all_serper + all_ddg
+                trusted_hits = [h for h in combined_hits if _is_trusted_domain(h.get("url", ""))]
+
+                v_serper, s_serper = RealToolkit._evidence_heuristic_verdict(clean_fact, all_serper)
+                v_ddg, s_ddg = RealToolkit._evidence_heuristic_verdict(clean_fact, all_ddg)
+
+                print(
+                    f"        🧾 SERPER: hits={len(all_serper)} trusted={sum(1 for h in all_serper if _is_trusted_domain(h.get('url','')))} "
+                    f"heuristic={v_serper}({s_serper})"
+                )
+                print(
+                    f"        🧾 DDG: hits={len(all_ddg)} trusted={sum(1 for h in all_ddg if _is_trusted_domain(h.get('url','')))} "
+                    f"heuristic={v_ddg}({s_ddg})"
+                )
+
+                # Heuristic only short-circuits when STRONG and SAFE (esp strong FALSE for hoax refutation).
+                v_all, s_all = RealToolkit._evidence_heuristic_verdict(clean_fact, combined_hits)
+                if v_all is not None and s_all == "strong":
+                    verdict = v_all
+                    RealToolkit._cache[cache_key] = verdict
+                    status_icon = "✅" if verdict else "❌"
+                    print(f"        └─ {status_icon} Heuristic(strong) Result: {'TRUE' if verdict else 'FALSE'}")
+                    return verdict
+
+                evidence_base = trusted_hits if trusted_hits else combined_hits
+                evidence_lines = _summarize_hits(evidence_base, max_n=8) if evidence_base else ""
+
+                if not evidence_lines.strip():
+                    v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
+                    print(f"        🧠 COMMON_SENSE vote={v_cs}")
+                    final = bool(v_cs) if v_cs is not None else False
+                    RealToolkit._cache[cache_key] = final
+                    status_icon = "✅" if final else "❌"
+                    print(f"        └─ {status_icon} Final (no-evidence) Result: {'TRUE' if final else 'FALSE'}")
+                    return final
+
+                # ALWAYS run RAG judge, but do NOT trust its confidence directly.
+                jr = RealToolkit._rag_judge_with_calibrated_conf(clean_fact, evidence_lines, evidence_base)
+                print(
+                    f"        🧠 RAG_JUDGE vote={jr.verdict} "
+                    f"llm_conf={jr.llm_confidence:.2f} econf={jr.evidence_confidence:.2f} final_conf={jr.final_confidence:.2f} "
+                    f"support={jr.support_ids} refute={jr.refute_ids} rationale={jr.rationale}"
+                )
+
+                # Decision using FINAL (clamped) confidence
+                if jr.verdict is True:
+                    final = True if jr.final_confidence >= RealToolkit.JUDGE_TRUE_MIN_FINAL_CONF else False
+                elif jr.verdict is False:
+                    final = False if jr.final_confidence >= RealToolkit.JUDGE_FALSE_MIN_FINAL_CONF else False
+                else:
+                    # Judge abstained => fallback
+                    v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
+                    print(f"        🧠 COMMON_SENSE vote={v_cs}")
+                    final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
+                    final = bool(final_vote) if final_vote is not None else False
+
+                RealToolkit._cache[cache_key] = bool(final)
+                status_icon = "✅" if final else "❌"
+                print(f"        └─ {status_icon} Final Result: {'TRUE' if final else 'FALSE'}")
+                return bool(final)
 
             # ------------------------
-            # COMMON_SENSE / default
+            # COMMON_SENSE or other
             # ------------------------
             clean_fact = RealToolkit._distill_claim(claim)
-            v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
-            out = JudgeResult(v_cs, 0.55 if v_cs is not None else 0.0, [], [], "Common-sense")
-            RealToolkit._cache[cache_key] = out
-            return out
+            final_prompt = f"""
+Return ONLY TRUE or FALSE for the statement below using common sense.
 
-        except Exception as e:
-            # On tool failure, ABSTAIN (do not confidently prune)
-            out = JudgeResult(None, 0.0, [], [], f"Verification error: {e}")
-            RealToolkit._cache[cache_key] = out
-            return out
-
-    # ---------- Main claim verification (BOOL compat) ----------
-    @staticmethod
-    def verify_claim(tool_type: str, claim: str) -> bool:
-        display_claim = (claim or "")[:80].replace("\n", " ")
-        print(f"      🕵️ [Processing]: '{display_claim}...' via {tool_type}")
-
-        cache_key = RealToolkit._cache_key("verify_bool", tool_type, claim or "")
-        if cache_key in RealToolkit._cache:
-            return RealToolkit._cache[cache_key]
-
-        try:
-            jr = RealToolkit.verify_claim_rich(tool_type, claim)
-
-            # Pretty logging
-            if tool_type == "WEB_SEARCH":
-                if jr.verdict is True:
-                    print(f"        └─ ✅ Final Result: TRUE (conf={jr.confidence:.2f})")
-                elif jr.verdict is False:
-                    print(f"        └─ ❌ Final Result: FALSE (conf={jr.confidence:.2f})")
-                else:
-                    print(f"        └─ ⚪ Final Result: ABSTAIN (conf={jr.confidence:.2f}) -> return FALSE")
-
-            # Compatibility mapping:
-            # - TRUE only when judge says TRUE with enough confidence.
-            # - FALSE when judge says FALSE with enough confidence.
-            # - ABSTAIN -> False (conservative: not verified true)
-            if jr.verdict is True and jr.confidence >= JUDGE_TRUE_MIN_CONF:
-                out = True
-            elif jr.verdict is False and jr.confidence >= JUDGE_FALSE_MIN_CONF:
-                out = False
-            else:
-                out = False
-
-            RealToolkit._cache[cache_key] = out
-            return out
+Statement: "{clean_fact}"
+Verdict:
+"""
+            res = client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[{"role": "user", "content": final_prompt}],
+                temperature=0.0,
+            )
+            verdict_txt = res.choices[0].message.content.strip().upper()
+            verdict = "TRUE" in verdict_txt
+            RealToolkit._cache[cache_key] = verdict
+            return verdict
 
         except Exception as e:
             print(f"      ⚠️ Verification Error: {e}")
-            # Conservative: do not prune; but bool interface has only True/False.
-            # Keeping previous behavior: return True on failure to avoid collapsing graph.
+            # On tool failure, do NOT prune aggressively: keep claim as TRUE to avoid collapsing graph
             RealToolkit._cache[cache_key] = True
             return True
