@@ -1,78 +1,105 @@
-# MaVERiC 
+# MaVERiC (Multi-Agent Verification & Reasoning in Context)
 
-MaVERiC is a research prototype for strategic fact-checking under budget constraints.
-It simulates adversarial multi-agent debates, parses them into an argumentation graph,
-and verifies a subset of claims using external tools to decide which arguments survive.
+MaVERiC is a research prototype for **robust multi-agent debate and verification**. It orchestrates a team of AI agents to debate complex topics, parses their arguments into a structured **Argumentation Graph**, and uses a dedicated **Solver** (MaVERiC) to verify claims and determine the truth.
 
-## Why this project
-- Simulate collusive debate behavior and test robustness against majority consensus.
-- Allocate limited verification budget using graph-aware ROI heuristics.
-- Compare MaVERiC against baselines like Random, CRITIC (sequential), and MAD (consensus).
+The system is designed to simulate adversarial environments where misinformation ("Team Myth") attempts to overwhelm the truth ("Team Truth"), and uses graph-based reasoning (SGS: Semantics-based Graph Summary) + ROI-based tool usage to verify facts efficiently under a budget.
 
-## Core idea
-1. Generate a multi-agent debate with a configurable number of colluding liars.
-2. Parse the transcript into atomic claims and attack/support relations.
-3. Use MaVERiC to pick high-impact claims to verify (tool calls cost budget).
-4. Prune false claims and recompute grounded extensions to reach a verdict.
+## 🚀 Key Features
 
-## Repository structure
-- `maveric_ijcai/src/agents/debater.py`: debate generator (LLM prompts + agent profiles).
-- `maveric_ijcai/src/agents/parser.py`: parses debate into an argumentation graph.
-- `maveric_ijcai/src/core/graph.py`: argumentation graph + grounded semantics + shielding.
-- `maveric_ijcai/src/core/solver.py`: MaVERiC strategic solver.
-- `maveric_ijcai/src/core/baselines.py`: Random, CRITIC, MAD, and ReAct baselines.
-- `maveric_ijcai/src/tools/real_toolkit.py`: verification tools (web search + python sandbox).
-- `maveric_ijcai/main_experiment.py`: batch experiments and metrics.
-- `maveric_ijcai/app_visualizer.py`: Streamlit visualizer for live runs.
-- `maveric_ijcai/test_real_toolkit*.py`: live integration tests.
+*   **7-Agent Debate System**: Simulates realistic debates with specialized personas (e.g., "The Fact-Checker", "The Fabricator", "The Accommodator").
+*   **Argumentation Graph**: Parses debates into atomic claim nodes connected by `SUPPORT` or `ATTACK` relations.
+*   **MaVERiC Solver**:
+    *   **SGS (Semantics-based Graph Summary)**: Computes grounded extensions to identify accepted arguments.
+    *   **ROI-driven Verification**: Optimizes tool usage (Web Search, Python) based on *Return on Investment* to verify the most critical nodes first.
+    *   **Topology Refinement**: Prunes invalid edges (e.g., attacks on verified truths) to maintain graph consistency.
+*   **Tool Integration**:
+    *   **Google Search** (via Serper): For open-domain fact-checking.
+    *   **Python Execution**: For deterministic logic (math, dates).
+    *   **LLM Judges**: For semantic verification and "common sense" checks.
 
-## Requirements
-- Python 3.10+
-- OpenAI-compatible API key (or compatible proxy)
-- Optional: Serper API key for Google search
+## 📦 Installation
 
-Install dependencies:
+### Prerequisites
+*   Python 3.9+
+*   `pip` or `conda`
+
+### Setup
+
+1.  **Clone the repository** (if applicable):
+    ```bash
+    git clone https://github.com/anonymos-saner-2026/maveric_off.git
+    cd maveric_off
+    ```
+
+2.  **Install dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+    *Note: If `requirements.txt` is missing, core dependencies are: `openai`, `networkx`, `pandas`, `tqdm`, `matplotlib`, `seaborn`, `python-dotenv`, `requests`.*
+
+3.  **Configuration**:
+    Create a `.env` file in the root directory with your API keys:
+    ```env
+    OPENAI_API_KEY=sk-...
+    SERPER_API_KEY=...    # For Google Search tool
+    OPENAI_BASE_URL=...   # Optional, defaults to https://api.yescale.io/v1 or standard OpenAI
+    ```
+
+## 🛠 Usage
+
+### 1. Run the Main Experiment
+To run the full pipeline (Debate -> Parse -> Verify) on a set of built-in topics:
+
 ```bash
-pip install -r maveric_ijcai/requirements.txt
+python main_experiment.py
 ```
 
-Environment variables (use `.env`):
+**What happens:**
+*   Generates a debate for each topic (configured in `main_experiment.py`).
+*   Parses the debate into a graph.
+*   Runs multiple solvers (`MAD`, `Random`, `CRITIC`, `MaVERiC`) for comparison.
+*   Saves outputs to `runs/` (CSV results, plots, logs).
+
+### 2. Run the Mini Workflow (Quick Demo)
+For a single-topic demonstration of the MaVERiC solver's step-by-step verification logic:
+
 ```bash
-OPENAI_API_KEY=...
-OPENAI_BASE_URL=https://api.yescale.io/v1
-SERPER_API_KEY=...
+python mini_workflow.py
 ```
 
-## Run a batch experiment
+### 3. Run Tests
+To verify the correctness of the toolkit and logic:
 ```bash
-python maveric_ijcai/main_experiment.py
+python test_correctness_toolkit.py
 ```
 
-This will:
-- generate debates,
-- build graphs,
-- run MaVERiC and baselines,
-- report semantic accuracy and graph IoU.
+## 📂 Project Structure
 
-## Run the visualizer
-```bash
-streamlit run maveric_ijcai/app_visualizer.py
+```
+├── main_experiment.py       # Entry point for batch experiments
+├── mini_workflow.py         # Single-topic demo script
+├── test_correctness_toolkit.py # Unit tests for toolkit logic
+├── src/
+│   ├── agents/
+│   │   ├── debater.py       # LLM Agent debate generation
+│   │   └── parser.py        # Parses text -> Argumentation Graph
+│   ├── core/
+│   │   ├── solver.py        # MaVERiC Solver logic (ROI, SGS)
+│   │   ├── graph.py         # ArgumentationGraph data structure
+│   │   └── baselines.py     # Baseline solvers (MAD, CRITIC, Random)
+│   ├── tools/
+│   │   └── real_toolkit.py  # Wrapper for Web Search, Python, & LLM Judges
+│   └── config.py            # Global configuration (keys, models, profiles)
+└── runs/                    # Output directory for logs and results
 ```
 
-The UI shows:
-- live graph updates,
-- verification logs,
-- budget usage,
-- MaVERiC vs MAD verdict comparison.
+## 🧠 Solvers Overview
 
-## Tests (live)
-These tests call real APIs and may incur cost:
-```bash
-python maveric_ijcai/test_real_toolkit.py
-python maveric_ijcai/test_real_toolkit_v2.py
-python maveric_ijcai/test_real_toolkit_v3.py
-```
+*   **MaVERiC**: The core proposed method. Uses graph semantics (SGS) to identify the "Grounded Extension" (accepted arguments) and uses an ROI function to select the most impactful nodes to verify with external tools interactively.
+*   **MAD (Maximum Arbitrary Degree)**: A baseline that selects the "truth" based on simple majority voting (node degree).
+*   **CRITIC**: Verification based on LLM self-critique/feedback without graph topology.
+*   **Random**: Randomly selects nodes to verify (baseline).
 
-## Notes
-- Large data files under `maveric_ijcai/src/data/` are ignored by default.
-- This is a research prototype; outputs depend on model quality and API availability.
+## ⚠️ Notes
+*   **Costs**: Running experiments uses LLM tokens (OpenAI) and Search API credits (Serper). Check `src/config.py` and `TOOL_COSTS` in `src/core/solver.py` for cost estimates.
+*   **Determinism**: Python execution is sandboxed but relies on `exec()`. Review `src/tools/real_toolkit.py` for security boundaries.
