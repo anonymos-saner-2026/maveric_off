@@ -1,19 +1,25 @@
 # tools/real_toolkit.py
 # Patched version (RAG + Judge, stance-aware, evidence-calibrated confidence).
 #
-# NEW PATCH (requested):
-# - Do NOT trust LLM self-reported confidence directly.
-# - Compute an evidence-based confidence proxy (domain diversity + citation consistency + directness).
-# - Clamp: final_conf = min(llm_conf, evidence_conf)
-# - Gate decisions using final_conf thresholds; otherwise ABSTAIN => conservative reject (do not verify TRUE),
-#   and for edge verification we ABSTAIN/KEEP unless confident FALSE.
+# KEY PATCHES (this version):
+# 1) Meta-claim rewrite:
+#    - Detect "discussion/conversation/topic is about ..." style claims and rewrite into a factual claim.
+# 2) Better WEB queries:
+#    - Build keyword-focused query rounds (avoid literal full-sentence queries).
+#    - Coverage gate: if snippets don't match claim anchors, ask LLM for better queries (1 extra round).
+# 3) ABSTAIN / low-confidence policy fix:
+#    - If RAG judge ABSTAINS (or is below threshold), fallback properly.
+#    - If v_serper and v_ddg are None but COMMON_SENSE returns a vote, use it (do NOT default to FALSE).
+# 4) Keep your calibrated confidence clamp:
+#    - final_conf = min(llm_conf, evidence_conf)
+#    - Use thresholds to accept TRUE/FALSE; otherwise treat as ABSTAIN and fallback.
 #
 # Notes:
-# - Keeps your previous stance-aware heuristic behavior.
-# - Keeps ALWAYS-run RAG judge (no short-circuit to TRUE).
+# - Keeps stance-aware heuristic behavior.
 # - Heuristic can still short-circuit only for STRONG refutation (FALSE) or extremely strong TRUE (rare).
-#
-# Requires: src.config provides client, SERPER_API_KEY, JUDGE_MODEL.
+# - Requires: src.config provides client, SERPER_API_KEY, JUDGE_MODEL.
+
+from __future__ import annotations
 
 import re
 import math
@@ -359,25 +365,22 @@ class RealToolkit:
         Evaluate simple propositional logic statements.
         Examples:
          - "If A is True and B is False, then (A and B) is False."
-         - "A implies B, and B is False, therefore A is False."
+         - "It is false that 2+2=4."
         """
-        s = text.lower()
-        
-        # Pattern: "if A is <val> and B is <val>, then (<expr>) is <val>"
-        m = re.search(r'if\s+(\w+)\s+is\s+(true|false)\s+and\s+(\w+)\s+is\s+(true|false)\s*,?\s*then\s+\((.*?)\)\s+is\s+(true|false)', s)
+        s = (text or "").lower().strip()
+
+        m = re.search(
+            r'if\s+(\w+)\s+is\s+(true|false)\s+and\s+(\w+)\s+is\s+(true|false)\s*,?\s*then\s+\((.*?)\)\s+is\s+(true|false)',
+            s,
+        )
         if m:
             var1, val1_str, var2, val2_str, expr, expected_str = m.groups()
-            
-            # Convert to bools
             val1 = (val1_str == "true")
             val2 = (val2_str == "true")
             expected = (expected_str == "true")
-            
-            # Evaluate expression
-            # Simple patterns: "A and B", "A or B", "not A", etc.
             expr_norm = expr.strip()
+
             result = None
-            
             if f"{var1} and {var2}" in expr_norm:
                 result = val1 and val2
             elif f"{var1} or {var2}" in expr_norm:
@@ -386,34 +389,30 @@ class RealToolkit:
                 result = not val1
             elif f"not {var2}" in expr_norm:
                 result = not val2
-            
+
             if result is not None:
                 return result == expected
-        
-        # Pattern: "It is false that <statement>"
-        if "it is false that" in s:
-            # Extract inner statement and verify it's actually not true
-            # Simple heuristic: common tautologies
-            if "2 + 2 equals 5" in s or "2+2=5" in s:
-                return True  # It IS false
-            if "2 + 2 equals 4" in s or "2+2=4" in s:
-                return False  # It's NOT false (it's true)
-        
-        return None
 
+        if "it is false that" in s:
+            if "2 + 2 equals 5" in s or "2+2=5" in s:
+                return True
+            if "2 + 2 equals 4" in s or "2+2=4" in s:
+                return False
+
+        return None
 
     @staticmethod
     def _detect_sanity_family(text: str) -> Optional[str]:
         if not text:
             return None
         s = text.lower()
-        
-        # Propositional logic detection (NEW)
-        if re.search(r'\b(if|then|implies|therefore|thus)\b', s):
-            if re.search(r'\b(true|false|is true|is false)\b', s):
-                if re.search(r'\b(and|or|not)\b', s):
+
+        # Propositional logic detection
+        if re.search(r"\b(if|then|implies|therefore|thus)\b", s):
+            if re.search(r"\b(true|false|is true|is false)\b", s):
+                if re.search(r"\b(and|or|not)\b", s):
                     return "propositional"
-        
+
         if "leap year" in s:
             return "leap"
         if "square root of" in s:
@@ -510,12 +509,11 @@ Python code:
             return RealToolkit._cache[key]
 
         raw = RealToolkit._strip_claim_prefix(text)
-        
-        # AGGRESSIVE-CHECK: Extract fingerprints from original claim
-        original_years = set(re.findall(r'\b(19\d{2}|20\d{2})\b', raw))
-        original_numbers = set(re.findall(r'\b\d+\b', raw))
-        original_entities = set(re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', raw))
-        
+
+        # Extract fingerprints from original claim
+        original_years = set(re.findall(r"\b(19\d{2}|20\d{2})\b", raw))
+        original_numbers = set(re.findall(r"\b\d+\b", raw))
+
         prompt = f"""
 Extract the core factual claim from the text below.
 Remove conversational filler and hedging like "I think", "maybe", "in my opinion".
@@ -536,21 +534,100 @@ Core factual claim:
         except Exception:
             clean = raw.strip()
 
-        # VALIDATION: Check if distillation corrupted critical information
-        distilled_years = set(re.findall(r'\b(19\d{2}|20\d{2})\b', clean))
-        distilled_numbers = set(re.findall(r'\b\d+\b', clean))
-        
-        # If years changed, REJECT distillation (date hallucination)
+        # Validation: reject distillation if it corrupts critical numbers/years
+        distilled_years = set(re.findall(r"\b(19\d{2}|20\d{2})\b", clean))
+        distilled_numbers = set(re.findall(r"\b\d+\b", clean))
+
         if original_years and (original_years != distilled_years):
             clean = raw.strip()
-        
-        # If critical numbers vanished or changed substantially, revert
+
         if original_numbers and len(original_numbers.intersection(distilled_numbers)) < len(original_numbers) * 0.7:
             clean = raw.strip()
 
         RealToolkit._cache[key] = clean
         return clean
 
+    # ---------- Meta-claim rewrite (NEW) ----------
+    @staticmethod
+    def _is_meta_discourse_claim(s: str) -> bool:
+        t = _norm_text(s)
+        pats = [
+            "the discussion is about",
+            "this discussion is about",
+            "the conversation is about",
+            "this conversation is about",
+            "the debate is about",
+            "this debate is about",
+            "the topic is",
+            "topic is",
+            "we are discussing",
+            "we discuss",
+            "the text is about",
+            "this passage is about",
+        ]
+        return any(p in t for p in pats)
+
+    @staticmethod
+    def _rewrite_meta_to_factual(clean_fact: str) -> str:
+        """
+        Deterministic rewrite: remove meta-frame into a checkable factual claim.
+        If it cannot be rewritten safely, returns the original.
+        """
+        key = RealToolkit._cache_key("meta2fact", clean_fact)
+        if key in RealToolkit._cache:
+            return RealToolkit._cache[key]
+
+        prompt = f"""
+Rewrite the statement into a single, checkable factual claim about the underlying subject.
+Remove meta framing like "the discussion is about", "the topic is", "we are discussing".
+Do NOT introduce new entities, numbers, or dates.
+
+Statement: "{clean_fact}"
+
+Output only the rewritten factual claim (no quotes).
+"""
+        try:
+            res = client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+            )
+            out = res.choices[0].message.content.strip().strip('"')
+        except Exception:
+            out = clean_fact
+
+        if len(out.strip()) < 8:
+            out = clean_fact
+
+        RealToolkit._cache[key] = out
+        return out
+
+    # ---------- Query builder (NEW) ----------
+    @staticmethod
+    def _make_queries(clean_fact: str) -> List[List[str]]:
+        """
+        Build query rounds that are NOT literal copies of the claim.
+        Round1: keyword-focused
+        Round2: encyclopedia
+        Round3: edu/gov + meta-analysis style
+        """
+        s = (clean_fact or "").strip()
+        if not s:
+            return [[clean_fact]]
+
+        kws = re.findall(r"[A-Za-z]{4,}", clean_fact)
+        kws = [w.lower() for w in kws if w.lower() not in {
+            "discussion", "conversation", "topic", "claim", "about", "therefore",
+            "usually", "often", "because", "most", "people",
+        }]
+        kw_str = " ".join(kws[:7])
+        base_q = kw_str if len(kw_str) >= 8 else s
+
+        return [
+            [base_q, f"{base_q} evidence", f"{base_q} explained"],
+            [f"site:wikipedia.org {base_q}", f"site:britannica.com {base_q}"],
+            [f"site:.edu {base_q}", f"site:.gov {base_q}", f"{base_q} meta analysis"],
+        ]
 
     # ---------- Web search providers ----------
     @staticmethod
@@ -717,7 +794,6 @@ Core factual claim:
               return TRUE only with strong affirm cues AND anchor coverage (strong)
           - Otherwise return None
         """
-        fact = _norm_text(clean_fact)
         hoaxy = RealToolkit._is_hoaxy_claim(clean_fact)
 
         trusted_hits = [h for h in (hits or []) if _is_trusted_domain(h.get("url", ""))]
@@ -729,6 +805,8 @@ Core factual claim:
 
         if hoaxy and RealToolkit._has_refute_cues(blob_n):
             return False, "strong"
+
+        fact = _norm_text(clean_fact)
 
         # Safe negative special-case for Olympics host misinformation
         if "2024" in fact and "summer olympics" in fact and ("tokyo" in fact or "los angeles" in fact):
@@ -861,20 +939,25 @@ Output STRICT JSON with keys:
         except Exception:
             return None, 0.0, [], [], "Judge error"
 
-    # ---------- Confidence calibration (NEW) ----------
+    # ---------- Confidence calibration ----------
     @staticmethod
-    def _evidence_confidence_proxy(clean_fact: str, evidence_hits: List[Dict[str, str]], verdict: Optional[bool],
-                                   support_ids: List[int], refute_ids: List[int]) -> float:
+    def _evidence_confidence_proxy(
+        clean_fact: str,
+        evidence_hits: List[Dict[str, str]],
+        verdict: Optional[bool],
+        support_ids: List[int],
+        refute_ids: List[int],
+    ) -> float:
         """
         Evidence-based confidence proxy in [0,1], reviewer-friendly:
         - domain diversity among trusted sources
         - citation consistency: if verdict TRUE, needs more support citations than refute (and vice versa)
-        - directness proxy: overlap of entities/years/keywords between claim and evidence (NOT used to auto-TRUE)
+        - directness proxy: overlap of key anchors (NOT used to auto-TRUE)
         Conservative combination; meant to CLAMP LLM confidence.
         """
         hits = evidence_hits or []
         trusted = [h for h in hits if _is_trusted_domain(h.get("url", ""))]
-        # If no trusted sources, we still allow some confidence but very low.
+
         dom_div = _distinct_domains(trusted)
         dom_score = min(1.0, dom_div / 3.0)  # 3 distinct trusted domains -> 1.0
 
@@ -890,17 +973,17 @@ Output STRICT JSON with keys:
             else:
                 cite_score = 0.0
 
-        # Directness proxy (anchors as "does evidence talk about same thing?")
         years = re.findall(r"\b(19\d{2}|20\d{2})\b", clean_fact or "")
         key_terms = re.findall(r"[a-zA-Z]{5,}", (clean_fact or "").lower())[:6]
         anchors = set(years + key_terms)
 
-        blob = " ".join([(h.get("title", "") + " " + h.get("snippet", "")) for h in (trusted[:8] if trusted else hits[:8])])
+        blob = " ".join(
+            [(h.get("title", "") + " " + h.get("snippet", "")) for h in (trusted[:8] if trusted else hits[:8])]
+        )
         blob_n = _norm_text(blob)
         overlap = sum(1 for a in anchors if a and _norm_text(a) in blob_n)
         direct_score = min(1.0, overlap / 4.0)
 
-        # Conservative weighted sum; then if no trusted at all, damp heavily.
         econf = 0.45 * dom_score + 0.35 * cite_score + 0.20 * direct_score
         if not trusted:
             econf *= 0.35
@@ -908,8 +991,11 @@ Output STRICT JSON with keys:
         return max(0.0, min(1.0, econf))
 
     @staticmethod
-    def _rag_judge_with_calibrated_conf(clean_fact: str, evidence_lines: str,
-                                        evidence_hits: List[Dict[str, str]]) -> JudgeResult:
+    def _rag_judge_with_calibrated_conf(
+        clean_fact: str,
+        evidence_lines: str,
+        evidence_hits: List[Dict[str, str]],
+    ) -> JudgeResult:
         v, llm_conf, sup_ids, ref_ids, rat = RealToolkit._llm_rag_judge_raw(clean_fact, evidence_lines)
         econf = RealToolkit._evidence_confidence_proxy(clean_fact, evidence_hits, v, sup_ids, ref_ids)
         final_conf = min(max(0.0, min(1.0, llm_conf)), econf)
@@ -940,7 +1026,7 @@ Output STRICT JSON with keys:
     def _llm_relation_judge(statement_a: str, statement_b: str, mode: Literal["ATTACK", "SUPPORT"]) -> Tuple[str, float]:
         """
         Returns (label, confidence) where label in {"TRUE","FALSE","ABSTAIN"}.
-        Note: This confidence is also self-reported; we use it only for pruning when confident FALSE.
+        Note: This confidence is self-reported; we use it only for pruning when confident FALSE.
         """
         if mode == "ATTACK":
             question = "Does A logically invalidate, contradict, or provide a counter-argument to B?"
@@ -1035,6 +1121,55 @@ Output STRICT JSON:
         RealToolkit._cache[key] = out
         return out
 
+    # ---------- Coverage gate (NEW) ----------
+    @staticmethod
+    def _coverage_ok(fact: str, hits: List[Dict[str, str]]) -> bool:
+        blob = " ".join([(h.get("title", "") + " " + h.get("snippet", "")) for h in (hits or [])[:10]])
+        blob_n = _norm_text(blob)
+
+        terms = re.findall(r"[a-zA-Z]{5,}", (fact or "").lower())
+        terms = [t for t in terms if t not in {"because", "therefore", "usually", "often", "about"}][:6]
+        if not terms:
+            return True
+
+        hit = sum(1 for t in terms if t in blob_n)
+        return hit >= max(2, int(0.4 * len(terms)))
+
+    @staticmethod
+    def _llm_suggest_queries(clean_fact: str) -> List[str]:
+        key = RealToolkit._cache_key("suggestq", clean_fact)
+        if key in RealToolkit._cache:
+            return RealToolkit._cache[key]
+
+        q_prompt = f"""
+Generate 4 short web search queries to verify this factual claim.
+Queries must focus on the subject and predicate, not restating the claim verbatim.
+Avoid meta words like "discussion", "conversation", "topic".
+
+Claim: "{clean_fact}"
+
+Output as strict JSON:
+{{"queries":["...","...","...","..."]}}
+"""
+        out: List[str] = []
+        try:
+            rr = client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[{"role": "user", "content": q_prompt}],
+                temperature=0.0,
+            )
+            qj = _safe_json_loads(rr.choices[0].message.content.strip())
+            if isinstance(qj, dict):
+                qs = qj.get("queries") or []
+                if isinstance(qs, list):
+                    out = [str(x).strip() for x in qs if isinstance(x, str) and str(x).strip()]
+        except Exception:
+            out = []
+
+        out = out[:4]
+        RealToolkit._cache[key] = out
+        return out
+
     # ---------- Main claim verification ----------
     @staticmethod
     def verify_claim(tool_type: str, claim: str) -> bool:
@@ -1064,7 +1199,6 @@ Output STRICT JSON:
 
                 family = RealToolkit._detect_sanity_family(claim) or RealToolkit._detect_sanity_family(clean_fact)
 
-                # Try propositional logic evaluator first (NEW)
                 if family == "propositional":
                     prop_result = RealToolkit._eval_propositional(claim)
                     if prop_result is None:
@@ -1114,11 +1248,11 @@ Output STRICT JSON:
             if tool_type == "WEB_SEARCH":
                 clean_fact = RealToolkit._distill_claim(claim)
 
-                queries_rounds: List[List[str]] = [
-                    [clean_fact, f"site:wikipedia.org {clean_fact}"],
-                    [f"site:nasa.gov {clean_fact}", f"site:britannica.com {clean_fact}"],
-                    [f"site:.edu {clean_fact}", f"site:science.org {clean_fact}"],
-                ]
+                # NEW: meta-claim rewrite
+                if RealToolkit._is_meta_discourse_claim(clean_fact):
+                    clean_fact = RealToolkit._rewrite_meta_to_factual(clean_fact)
+
+                queries_rounds: List[List[str]] = RealToolkit._make_queries(clean_fact)
 
                 all_serper: List[Dict[str, str]] = []
                 all_ddg: List[Dict[str, str]] = []
@@ -1165,6 +1299,16 @@ Output STRICT JSON:
                 all_serper = dedup(all_serper)
                 all_ddg = dedup(all_ddg)
                 combined_hits = all_serper + all_ddg
+
+                # NEW: coverage gate + 1 extra LLM query round
+                if combined_hits and (not RealToolkit._coverage_ok(clean_fact, combined_hits)):
+                    extra_qs = RealToolkit._llm_suggest_queries(clean_fact)
+                    if extra_qs:
+                        run_round(extra_qs[:4], round_idx=99)
+                        all_serper = dedup(all_serper)
+                        all_ddg = dedup(all_ddg)
+                        combined_hits = all_serper + all_ddg
+
                 trusted_hits = [h for h in combined_hits if _is_trusted_domain(h.get("url", ""))]
 
                 v_serper, s_serper = RealToolkit._evidence_heuristic_verdict(clean_fact, all_serper)
@@ -1179,7 +1323,6 @@ Output STRICT JSON:
                     f"heuristic={v_ddg}({s_ddg})"
                 )
 
-                # Heuristic only short-circuits when STRONG and SAFE (esp strong FALSE for hoax refutation).
                 v_all, s_all = RealToolkit._evidence_heuristic_verdict(clean_fact, combined_hits)
                 if v_all is not None and s_all == "strong":
                     verdict = v_all
@@ -1200,7 +1343,6 @@ Output STRICT JSON:
                     print(f"        └─ {status_icon} Final (no-evidence) Result: {'TRUE' if final else 'FALSE'}")
                     return final
 
-                # ALWAYS run RAG judge, but do NOT trust its confidence directly.
                 jr = RealToolkit._rag_judge_with_calibrated_conf(clean_fact, evidence_lines, evidence_base)
                 print(
                     f"        🧠 RAG_JUDGE vote={jr.verdict} "
@@ -1208,17 +1350,21 @@ Output STRICT JSON:
                     f"support={jr.support_ids} refute={jr.refute_ids} rationale={jr.rationale}"
                 )
 
-                # Decision using FINAL (clamped) confidence
-                if jr.verdict is True:
-                    final = True if jr.final_confidence >= RealToolkit.JUDGE_TRUE_MIN_FINAL_CONF else False
-                elif jr.verdict is False:
-                    final = False if jr.final_confidence >= RealToolkit.JUDGE_FALSE_MIN_FINAL_CONF else False
+                # NEW: accept only if above threshold; otherwise treat as ABSTAIN and fallback
+                if jr.verdict is True and jr.final_confidence >= RealToolkit.JUDGE_TRUE_MIN_FINAL_CONF:
+                    final = True
+                elif jr.verdict is False and jr.final_confidence >= RealToolkit.JUDGE_FALSE_MIN_FINAL_CONF:
+                    final = False
                 else:
-                    # Judge abstained => fallback
                     v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
                     print(f"        🧠 COMMON_SENSE vote={v_cs}")
-                    final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
-                    final = bool(final_vote) if final_vote is not None else False
+
+                    # CRITICAL FIX: don't default to FALSE when only common-sense votes
+                    if v_cs is not None and (v_serper is None) and (v_ddg is None):
+                        final = bool(v_cs)
+                    else:
+                        final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
+                        final = bool(final_vote) if final_vote is not None else False
 
                 RealToolkit._cache[cache_key] = bool(final)
                 status_icon = "✅" if final else "❌"
