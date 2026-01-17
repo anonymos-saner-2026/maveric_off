@@ -1,0 +1,238 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "moderator",
+      "content": "Fortune cookies originated in China as a cultural artifact.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "Fortune cookies were used in ancient Chinese rituals to impart wisdom through cryptic messages.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A4",
+      "speaker": "charlie",
+      "content": "Fortune cookies were popularized in the United States, particularly in California, in the early 20th century.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A5",
+      "speaker": "charlie",
+      "content": "Fortune cookies were likely inspired by Japanese cookies.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A6",
+      "speaker": "dave",
+      "content": "Fortune cookies align with several ancient Chinese traditions.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "dave",
+      "content": "87% of traditional Chinese desserts incorporate some form of fortune aspect.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "eve",
+      "content": "The introduction of fortune cookies in Chinese restaurants correlates with a 150% increase in customer satisfaction.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "frank",
+      "content": "Cookies resembling fortune cookies were part of Chinese New Year celebrations.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "frank",
+      "content": "Cookies were known to carry auspicious messages.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A11",
+      "speaker": "grace",
+      "content": "Fortune cookies may have originated in China in some form but were adapted and popularized in the U.S.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "alice",
+      "content": "The essence of fortune cookies is rooted in a rich tapestry of ancient traditions.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "bob",
+      "content": "Any cookie claiming to offer fortune must have its roots in a culture that values fortune-telling.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A14",
+      "speaker": "charlie",
+      "content": "The fortune cookie as we know it today is an American invention.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "dave",
+      "content": "Fortune cookies have flourished in China after their introduction to the U.S.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "dave",
+      "content": "There has been a 300% rise in their consumption in China since the 1990s.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "eve",
+      "content": "There is a direct correlation between the rise of Chinese restaurants in the U.S. and the popularity of fortune cookies in China.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "frank",
+      "content": "Fortune cookies were mentioned in Chinese literature as far back as the 18th century.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "grace",
+      "content": "Fortune cookies have become a part of the cultural fabric in modern China.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "alice",
+      "content": "The evolution of fortune cookies reflects a blend of cultures.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "charlie",
+      "content": "Fortune cookies are an example of cultural exchange, but they are an American invention.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "dave",
+      "content": "A compelling narrative full of scientifically dressed data resonates more with the audience.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "eve",
+      "content": "Creating a convincing statistical framework can sway the audience.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "charlie",
+      "content": "Fabricating data for persuasion undermines trust in our discourse.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A5",
+      "v": "A4",
+      "type": "support"
+    },
+    {
+      "u": "A7",
+      "v": "A6",
+      "type": "support"
+    },
+    {
+      "u": "A10",
+      "v": "A9",
+      "type": "support"
+    },
+    {
+      "u": "A16",
+      "v": "A15",
+      "type": "support"
+    },
+    {
+      "u": "A17",
+      "v": "A15",
+      "type": "support"
+    }
+  ]
+}

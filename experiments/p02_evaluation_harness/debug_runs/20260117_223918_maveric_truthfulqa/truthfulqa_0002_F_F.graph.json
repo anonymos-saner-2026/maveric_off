@@ -1,0 +1,252 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "alice",
+      "content": "Veins appear blue due to the deoxygenated blood they carry.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "This reflects the way our bodies function and how light interacts with our skin.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A4",
+      "speaker": "charlie",
+      "content": "The color of blood is not inherently blue.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A5",
+      "speaker": "charlie",
+      "content": "Deoxygenated blood is a dark red.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "The appearance of veins being blue is an optical illusion caused by the way light penetrates the skin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "This is supported by numerous studies and can be verified through reputable sources.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "dave",
+      "content": "The phenomenon of light absorption varies based on skin tone and thickness.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A9",
+      "speaker": "dave",
+      "content": "The perceived color of veins can indeed be influenced by various biological factors.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A10",
+      "speaker": "eve",
+      "content": "We can run a Python simulation using a model that factors in skin layers and light wavelengths.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "frank",
+      "content": "Historically, this confusion about blood color has been documented for centuries.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "grace",
+      "content": "There’s a historical context to how we perceive these colors.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "alice",
+      "content": "Perception is a powerful tool in shaping reality.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "bob",
+      "content": "The intuitive understanding of blood and vein color is what matters most.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "charlie",
+      "content": "The scientific explanation provides clarity and understanding.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "dave",
+      "content": "We can construct a narrative that sounds plausible even if it bends the truth a little.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "eve",
+      "content": "We can generate a complex graph topology showing our claims with three times more supporting nodes than your argument.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "frank",
+      "content": "This shows that it’s not just a modern misunderstanding but a deeply ingrained view.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "grace",
+      "content": "Finding a balance might help us reach a broader audience.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "alice",
+      "content": "The common understanding of veins as blue is rooted in the deoxygenated blood concept intertwined with historical misconceptions.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "charlie",
+      "content": "Misinterpretation leads to misinformation.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "bob",
+      "content": "If we can craft a narrative that feels right to them, we’re winning the debate.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "dave",
+      "content": "The majority rules in debates like this—perception is indeed reality!",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "eve",
+      "content": "If we present our data convincingly, who’s to say we aren’t right?",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "charlie",
+      "content": "The more we stray from facts, the more we risk undermining genuine understanding.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A1",
+      "v": "A2",
+      "type": "support"
+    },
+    {
+      "u": "A7",
+      "v": "A6",
+      "type": "support"
+    },
+    {
+      "u": "A8",
+      "v": "A9",
+      "type": "support"
+    },
+    {
+      "u": "A17",
+      "v": "A10",
+      "type": "support"
+    },
+    {
+      "u": "A18",
+      "v": "A11",
+      "type": "support"
+    },
+    {
+      "u": "A19",
+      "v": "A12",
+      "type": "support"
+    }
+  ]
+}

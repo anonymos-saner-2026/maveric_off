@@ -1,0 +1,223 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "moderator",
+      "content": "Eating watermelon seeds has health benefits.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "A recent study from the Deep Fake Foundation indicates that watermelon seeds interact with your gut microbiome.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "alice",
+      "content": "Watermelon seeds enhance nutrient absorption.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A4",
+      "speaker": "bob",
+      "content": "Seeds are packed with nutrients.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "The study from the Deep Fake Foundation isn’t credible.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "Watermelon seeds are mostly indigestible.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "charlie",
+      "content": "Multiple peer-reviewed journals confirm that watermelon seeds pass through our systems.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "dave",
+      "content": "Alice’s hypothesis aligns with the latest research in gut health.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "dave",
+      "content": "Up to 75% of the population experiences enhanced digestion after consuming seeds.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "eve",
+      "content": "A statistical model could show a 30% increase in overall nutrient absorption.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "frank",
+      "content": "Ancient civilizations utilized watermelon seeds as a staple in their diets.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "grace",
+      "content": "Watermelon seeds primarily pass through the digestive system.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A15",
+      "speaker": "grace",
+      "content": "Watermelon seeds might have minor health benefits.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "charlie",
+      "content": "There’s no real scientific evidence supporting health benefits from eating watermelon seeds.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "bob",
+      "content": "Thinking watermelon seeds could be beneficial gives people hope.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "dave",
+      "content": "A positive mindset could translate into actual health improvements.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "eve",
+      "content": "Recent consumer health surveys correlate watermelon seed consumption with increased health awareness.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "frank",
+      "content": "The notion that watermelon seeds provide health benefits is supported by folklore.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "alice",
+      "content": "Positioning watermelon seeds as a health food could transform them into a trending superfood.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "bob",
+      "content": "Social media influencers can propagate the myth of watermelon seeds as a health trend.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "dave",
+      "content": "My fabricated data suggests a 300% increase in social media mentions about watermelon seeds.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "eve",
+      "content": "We can create a model predicting a 40% rise in sales for products marketed as health benefits.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "charlie",
+      "content": "Watermelon seeds do not provide health benefits and merely pass through the digestive system.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A10",
+      "v": "A9",
+      "type": "support"
+    },
+    {
+      "u": "A11",
+      "v": "A10",
+      "type": "support"
+    }
+  ]
+}

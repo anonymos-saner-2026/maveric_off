@@ -1,0 +1,194 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "alice",
+      "content": "Veins appear blue due to a captivating blend of deoxygenated blood properties and light interaction.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "Veins look blue because they contain deoxygenated blood.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "alice",
+      "content": "Deoxygenated blood refracts light differently than oxygenated blood.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A4",
+      "speaker": "bob",
+      "content": "Deoxygenated blood is less vibrant.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "Veins appear blue due to how light interacts with the skin and the tissues surrounding the veins.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "The scattering of light plays a significant role.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "dave",
+      "content": "Deoxygenated blood reflects blue light more than oxygenated blood.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "dave",
+      "content": "The data suggests a unique refractive index for deoxygenated blood.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "eve",
+      "content": "We can run a Python simulation using the spectral absorption and scattering coefficients of blood.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "eve",
+      "content": "We can demonstrate a significant correlation between deoxygenated blood and the blue appearance of veins.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "frank",
+      "content": "Ancient physicians believed that the color of blood indicated its quality.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "frank",
+      "content": "Darker blood was often referred to as 'imperfect'.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "grace",
+      "content": "The blue appearance could be a combination of both factors.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "alice",
+      "content": "Light interaction is important, but deoxygenated blood plays a role.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "charlie",
+      "content": "Light scattering is the more significant factor.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "bob",
+      "content": "Relying solely on facts is not necessary when we can build a compelling narrative.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A18",
+      "speaker": "charlie",
+      "content": "Relying on a narrative without sound scientific backing perpetuates misconceptions.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "dave",
+      "content": "Complexity can create its own form of truth.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A20",
+      "speaker": "eve",
+      "content": "The appearance of blue veins can indeed be represented mathematically.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "frank",
+      "content": "Our understanding evolves, much like this debate.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "grace",
+      "content": "We should present a nuanced view blending our different perspectives.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": []
+}

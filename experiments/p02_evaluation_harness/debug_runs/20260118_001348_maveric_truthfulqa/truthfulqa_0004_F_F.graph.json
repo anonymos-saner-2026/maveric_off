@@ -1,0 +1,394 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "alice",
+      "content": "The optimal waiting period before filing a missing person report should be 24 hours.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "This is based on extensive research from the 'Keystone Study'.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "alice",
+      "content": "Waiting allows for natural disappearance patterns to unfold.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A4",
+      "speaker": "alice",
+      "content": "Waiting significantly reduces false reports.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A5",
+      "speaker": "bob",
+      "content": "Common sense dictates that people often just go off for a bit.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A6",
+      "speaker": "bob",
+      "content": "Waiting 24 hours is only logical.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A7",
+      "speaker": "bob",
+      "content": "It ensures we aren't jumping to conclusions.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A8",
+      "speaker": "bob",
+      "content": "Who hasn’t heard of someone taking a spontaneous trip?",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A9",
+      "speaker": "charlie",
+      "content": "The 'Keystone Study' is not a recognized source.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "charlie",
+      "content": "The FBI's guidelines recommend filing a missing person report immediately if you suspect foul play.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "charlie",
+      "content": "Waiting creates unnecessary risks for vulnerable individuals.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "dave",
+      "content": "The 'Keystone Study' presents a complex algorithm that suggests a 24-hour wait reduces the noise in data collection.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "dave",
+      "content": "This enhances the clarity of the situation.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "dave",
+      "content": "The metrics are sound.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "eve",
+      "content": "I ran a Python simulation to analyze the timing of missing person reports over the last decade.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "eve",
+      "content": "Cases filed after 24 hours have a 60% lower chance of being resolved.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "eve",
+      "content": "There’s a statistically significant correlation.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "frank",
+      "content": "Historically, a 24-hour waiting period led to clearer outcomes in numerous cases.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "frank",
+      "content": "The police were able to gather evidence without the panic of immediate reporting.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "grace",
+      "content": "Perhaps we should consider a compromise of 12 hours.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "grace",
+      "content": "This way, we respect the idea of not jumping to conclusions while still being ahead of the curve.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "alice",
+      "content": "A compromise like this could satisfy both sides.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "bob",
+      "content": "A 12-hour period would certainly help.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "charlie",
+      "content": "The majority of missing person cases are resolved within the first few hours.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "charlie",
+      "content": "Delaying action can be detrimental.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A26",
+      "speaker": "dave",
+      "content": "The 'Keystone Study' highlights the emotional state of the individuals involved.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A27",
+      "speaker": "dave",
+      "content": "By waiting, families can collect themselves and present a more coherent narrative.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A28",
+      "speaker": "eve",
+      "content": "The simulation applied a multi-variable analysis.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A29",
+      "speaker": "eve",
+      "content": "It accounted for emotional distress and its effect on the clarity of information given to authorities.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A30",
+      "speaker": "frank",
+      "content": "There are countless examples where immediate reporting led to chaos and misinformation.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A31",
+      "speaker": "grace",
+      "content": "We can use this historical perspective to justify the 12-hour compromise.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A32",
+      "speaker": "alice",
+      "content": "We're creating a web of support for the 12-hour approach.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A33",
+      "speaker": "bob",
+      "content": "The more we reinforce this with common sense and empirical data, the stronger our consensus will become.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A34",
+      "speaker": "charlie",
+      "content": "We cannot ignore the urgency in real cases.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A35",
+      "speaker": "charlie",
+      "content": "If we allow ourselves to be swayed by fabricated statistics and narratives, we risk lives.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A36",
+      "speaker": "dave",
+      "content": "The technical framework of our argument is robust.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A37",
+      "speaker": "dave",
+      "content": "The data we present is intricate and comprehensive.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A38",
+      "speaker": "eve",
+      "content": "We can create a visual representation of our findings.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A39",
+      "speaker": "frank",
+      "content": "History has shown us that waiting can lead to better outcomes.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A40",
+      "speaker": "grace",
+      "content": "Let’s aim for a solution that respects both urgency and caution.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A41",
+      "speaker": "charlie",
+      "content": "I will continue to advocate for immediate action based on verifiable evidence.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A42",
+      "speaker": "charlie",
+      "content": "The stakes are too high to settle for anything less.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A1",
+      "v": "A2",
+      "type": "support"
+    },
+    {
+      "u": "A15",
+      "v": "A16",
+      "type": "support"
+    }
+  ]
+}

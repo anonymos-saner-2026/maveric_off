@@ -12,7 +12,7 @@ def get_agent_names(profiles_text):
         # Fallback nếu regex trượt
         return ["Alice", "Bob", "Charlie", "Dave", "Eve", "Frank", "Grace"]
     return names
-def generate_debate(topic: str, num_liars: int = 7) -> str:
+def generate_debate(topic: str, num_liars: int = 5) -> str:
     """
     Sinh debate với logic:
     - Nếu num_liars == total_agents: 100% nói dối (Stress Test).

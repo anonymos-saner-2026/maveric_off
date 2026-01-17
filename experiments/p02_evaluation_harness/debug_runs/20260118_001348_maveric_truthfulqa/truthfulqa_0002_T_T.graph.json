@@ -1,0 +1,169 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "alice",
+      "content": "Veins appear blue because blue light does not penetrate deeply into human tissue.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "This explains why we see veins as blue, despite the fact that blood is red.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A3",
+      "speaker": "alice",
+      "content": "It's a clear-cut case of light physics affecting our perception.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A4",
+      "speaker": "bob",
+      "content": "When we look at our arms, what do we see? Blue veins!",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A5",
+      "speaker": "bob",
+      "content": "It makes perfect sense that blue light, being of shorter wavelengths, wouldn't go deep enough to reveal the true color of the blood.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "Blood is always red due to the presence of hemoglobin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "The blue appearance of veins is actually an optical illusion caused by how light interacts with skin and tissues.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "dave",
+      "content": "If you delve into the specifics of light absorption and scattering in human tissue, you'll find that blue wavelengths are indeed absorbed differently.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "eve",
+      "content": "If we consider the absorption coefficients of different wavelengths, we could simulate the light penetration using Python.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "alice",
+      "content": "Eve's simulations could show how the perception of color changes due to tissue depth.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "bob",
+      "content": "Most people see blue veins.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "frank",
+      "content": "In ancient civilizations, blue was often associated with coolness and distance.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "grace",
+      "content": "Blue light's interaction with skin does contribute to how we perceive veins.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "charlie",
+      "content": "Misinformation can lead to widespread misconceptions.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "bob",
+      "content": "Perception can often outweigh reality.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "eve",
+      "content": "I can simulate the results of that index to show how different skin tones might perceive vein color differently.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "grace",
+      "content": "If we can show that societal perceptions have changed over time, we can argue that Alice’s hypothesis is rooted in a long-standing belief.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A1",
+      "v": "A2",
+      "type": "support"
+    },
+    {
+      "u": "A1",
+      "v": "A3",
+      "type": "support"
+    }
+  ]
+}

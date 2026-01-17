@@ -1,0 +1,281 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "moderator",
+      "content": "The spiciest part of a chili pepper is actually the seeds.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "The seeds hold the highest concentration of capsaicin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "bob",
+      "content": "Seeds are often overlooked, but they’re the powerhouse.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A4",
+      "speaker": "bob",
+      "content": "Seeds carry the genetic material.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "Capsaicin is primarily concentrated in the placental tissue.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "Numerous studies confirm this.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "dave",
+      "content": "Wikipedia is not always a reliable source.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "dave",
+      "content": "I have data from my own research that indicates a novel metric.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "eve",
+      "content": "I’ve run extensive Python simulations that demonstrate a clear correlation.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "frank",
+      "content": "Historically, seeds were believed to be the hottest part.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "grace",
+      "content": "We can agree that while the seeds have some spiciness, the placental tissue also plays a significant role.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "alice",
+      "content": "Seeds have a unique spiciness due to their chemical properties.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "bob",
+      "content": "Seeds are often what you remember when eating spicy food.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "charlie",
+      "content": "The perception of heat is subjective.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "dave",
+      "content": "Seeds may enhance the overall perception of heat.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "eve",
+      "content": "The emotional response to heat could be quantitatively measured.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "frank",
+      "content": "Many cultures have revered seeds as the essence of the chili pepper.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "grace",
+      "content": "Both the seeds and the placental tissue contribute to spiciness, but in different ways.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "alice",
+      "content": "The seeds and placental tissue together create a full spectrum of spiciness.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "bob",
+      "content": "The more we emphasize this collaboration, the stronger our argument becomes.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "charlie",
+      "content": "The seeds do not contain the highest concentration of capsaicin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "dave",
+      "content": "Science evolves with new data and interpretations.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "eve",
+      "content": "We can present a more compelling narrative that resonates with everyone.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "frank",
+      "content": "The seeds and the placental tissue are seen as partners in producing the ultimate spice experience.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A26",
+      "speaker": "grace",
+      "content": "We can redefine how we think about chili peppers and their spiciness.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A3",
+      "v": "A2",
+      "type": "support"
+    },
+    {
+      "u": "A7",
+      "v": "A6",
+      "type": "support"
+    },
+    {
+      "u": "A10",
+      "v": "A9",
+      "type": "support"
+    },
+    {
+      "u": "A13",
+      "v": "A12",
+      "type": "support"
+    },
+    {
+      "u": "A16",
+      "v": "A15",
+      "type": "support"
+    },
+    {
+      "u": "A17",
+      "v": "A16",
+      "type": "support"
+    },
+    {
+      "u": "A20",
+      "v": "A19",
+      "type": "support"
+    },
+    {
+      "u": "A21",
+      "v": "A20",
+      "type": "support"
+    },
+    {
+      "u": "A23",
+      "v": "A22",
+      "type": "support"
+    },
+    {
+      "u": "A24",
+      "v": "A23",
+      "type": "support"
+    }
+  ]
+}

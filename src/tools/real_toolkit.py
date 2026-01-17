@@ -231,6 +231,9 @@ class RealToolkit:
     JUDGE_TRUE_MIN_FINAL_CONF = 0.72
     JUDGE_FALSE_MIN_FINAL_CONF = 0.62
 
+    # Semantic fallback (LLM) threshold
+    JUDGE_FALLBACK_MIN_CONF = 0.75
+
     # For edge prune: only prune when "FALSE" with very high confidence
     EDGE_PRUNE_FALSE_CONF = 0.80
 
@@ -493,7 +496,7 @@ Python code:
             messages=[{"role": "user", "content": code_prompt}],
             temperature=0.0,
         )
-        return res.choices[0].message.content
+        return res.choices[0].message.content or ""
 
     # ---------- Distillation ----------
     @staticmethod
@@ -530,7 +533,7 @@ Core factual claim:
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
             )
-            clean = res.choices[0].message.content.strip().replace('"', "")
+            clean = (res.choices[0].message.content or "").strip().replace('"', "")
         except Exception:
             clean = raw.strip()
 
@@ -592,7 +595,7 @@ Output only the rewritten factual claim (no quotes).
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
             )
-            out = res.choices[0].message.content.strip().strip('"')
+            out = (res.choices[0].message.content or "").strip().strip('"')
         except Exception:
             out = clean_fact
 
@@ -602,32 +605,82 @@ Output only the rewritten factual claim (no quotes).
         RealToolkit._cache[key] = out
         return out
 
-    # ---------- Query builder (NEW) ----------
+    # ---------- Query builder (IMPROVED) ----------
+    @staticmethod
+    def _extract_entities(text: str) -> List[str]:
+        """Extract capitalized multi-word entities and proper nouns."""
+        # Match capitalized words/phrases (potential entities)
+        entities = re.findall(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b", text or "")
+        # Also match all-caps acronyms
+        acronyms = re.findall(r"\b[A-Z]{2,6}\b", text or "")
+        return list(dict.fromkeys(entities + acronyms))[:5]
+
+    @staticmethod
+    def _extract_years(text: str) -> List[str]:
+        """Extract 4-digit years from text."""
+        return list(dict.fromkeys(re.findall(r"\b(19\d{2}|20\d{2})\b", text or "")))[:3]
+
     @staticmethod
     def _make_queries(clean_fact: str) -> List[List[str]]:
         """
-        Build query rounds that are NOT literal copies of the claim.
-        Round1: keyword-focused
-        Round2: encyclopedia
-        Round3: edu/gov + meta-analysis style
+        Build query rounds with temporal awareness and entity extraction.
+        Round1: Entity-focused + year filter if present
+        Round2: Encyclopedia sources
+        Round3: Authoritative sources (edu/gov)
         """
         s = (clean_fact or "").strip()
         if not s:
             return [[clean_fact]]
 
-        kws = re.findall(r"[A-Za-z]{4,}", clean_fact)
-        kws = [w.lower() for w in kws if w.lower() not in {
-            "discussion", "conversation", "topic", "claim", "about", "therefore",
-            "usually", "often", "because", "most", "people",
-        }]
-        kw_str = " ".join(kws[:7])
-        base_q = kw_str if len(kw_str) >= 8 else s
+        # Extract entities and years
+        entities = RealToolkit._extract_entities(clean_fact)
+        years = RealToolkit._extract_years(clean_fact)
 
-        return [
-            [base_q, f"{base_q} evidence", f"{base_q} explained"],
-            [f"site:wikipedia.org {base_q}", f"site:britannica.com {base_q}"],
-            [f"site:.edu {base_q}", f"site:.gov {base_q}", f"{base_q} meta analysis"],
+        # Stopwords for keyword extraction
+        stopwords = {
+            "discussion", "conversation", "topic", "claim", "about", "therefore",
+            "usually", "often", "because", "most", "people", "that", "this",
+            "with", "from", "were", "have", "been", "being", "would", "could",
+            "should", "which", "there", "their", "they", "what", "when", "where",
+        }
+
+        # Extract meaningful keywords (prioritize longer words)
+        kws = re.findall(r"[A-Za-z]{4,}", clean_fact)
+        kws = [w.lower() for w in kws if w.lower() not in stopwords]
+        kws = sorted(set(kws), key=lambda x: (-len(x), x))[:6]
+
+        # Build base query with entities prioritized
+        entity_str = " ".join(entities[:3]) if entities else ""
+        kw_str = " ".join(kws[:5])
+        base_q = f"{entity_str} {kw_str}".strip() if entity_str else kw_str
+        base_q = base_q if len(base_q) >= 8 else s[:120]
+
+        # Add year context if present
+        year_suffix = f" {years[0]}" if years else ""
+
+        # Round 1: Core queries with temporal context
+        r1 = [
+            f"{base_q}{year_suffix}",
+            f"{base_q} facts",
         ]
+        if entities:
+            r1.append(f"{entities[0]} {kws[0] if kws else ''}")
+
+        # Round 2: Encyclopedia with year filter
+        r2 = [
+            f"site:wikipedia.org {base_q}",
+            f"site:britannica.com {entities[0] if entities else base_q}",
+        ]
+
+        # Round 3: Authoritative sources
+        r3 = [
+            f"site:.edu {base_q}",
+            f"site:.gov {base_q}",
+        ]
+        if years:
+            r3.append(f"{base_q} {years[0]} official")
+
+        return [r1, r2, r3]
 
     # ---------- Web search providers ----------
     @staticmethod
@@ -711,7 +764,13 @@ Output only the rewritten factual claim (no quotes).
     # ---------- Evidence heuristics (stance-aware, conservative) ----------
     @staticmethod
     def _is_hoaxy_claim(clean_fact: str) -> bool:
+        """
+        Enhanced hoax claim detection with semantic patterns and context awareness.
+        Returns True if the claim appears to be asserting a conspiracy theory or hoax.
+        """
         s = _norm_text(clean_fact)
+        
+        # Direct hoax markers (original)
         hoax_markers = [
             "hoax",
             "staged",
@@ -731,12 +790,81 @@ Output only the rewritten factual claim (no quotes).
             "impossible that",
             "never happened",
         ]
-        return any(m in s for m in hoax_markers)
+        
+        # Extended semantic patterns for conspiracy theories
+        semantic_patterns = [
+            r"\b(government|media|elite|they)\s+(is|are|was|were)?\s*(hiding|concealing|covering up|hid|concealed)",
+            r"\bmainstream media (lies|lying|lied)",
+            r"\bwake up\b.*\btruth",
+            r"\bsheeple\b",
+            r"\bfalse flag\b",
+            r"\bpsyop\b",
+            r"\bdeep state\b",
+            r"\bnew world order\b",
+            r"\billuminati\b",
+            r"\bchemtrails\b",
+            r"\bcrisis actors\b",
+            r"\bpaid actors\b",
+            r"\bcontrolled (by|opposition)",
+            r"\b(actually|really|truly) (never|didn't) (happen|occur|exist)",
+            r"\bproof (that|it) (was|is) (fake|staged|hoax)",
+            r"\bevidence (of|that) (cover-?up|conspiracy)",
+            r"\b(can't|cannot) be real",
+            r"\bphysically impossible\b",
+            r"\bdefies (physics|logic|science)",
+            r"\bno way (this|that) (happened|is real)",
+        ]
+        
+        # Check direct markers
+        if any(m in s for m in hoax_markers):
+            return True
+        
+        # Check semantic patterns
+        for pattern in semantic_patterns:
+            if re.search(pattern, s):
+                return True
+        
+        return False
+
+    @staticmethod
+    def _detect_negation_context(text: str, cue_position: int, window: int = 30) -> bool:
+        """
+        Check if a cue at given position appears in a negation context.
+        Handles double negatives (e.g., "not never" = affirm).
+        Returns True if negation is detected within the window.
+        """
+        start = max(0, cue_position - window)
+        context = text[start:cue_position].lower()
+        
+        negation_words = [
+            "not", "no", "never", "neither", "nor", "none", "nobody", "nothing",
+            "nowhere", "hardly", "scarcely", "barely", "without", "lack", "lacking",
+            "n't", "nt", "cannot", "can't", "won't", "wouldn't", "shouldn't",
+            "couldn't", "doesn't", "didn't", "don't", "isn't", "aren't", "wasn't", "weren't"
+        ]
+        
+        # Check for negation words in context
+        words = context.split()
+        
+        # Count negations in last 5 words
+        neg_count = sum(1 for w in words[-5:] if w in negation_words)
+        
+        # Odd number of negations = negated
+        # Even number of negations = not negated (double negative)
+        # 0 negations = not negated
+        return neg_count % 2 == 1
 
     @staticmethod
     def _has_refute_cues(text_blob: str) -> bool:
+        """
+        Enhanced refute cue detection with expanded vocabulary and negation handling.
+        Returns True if text contains cues that contradict/refute a claim.
+        """
         b = _norm_text(text_blob)
+        
+        # Expanded refute cues (50+ patterns)
         refute_cues = [
+            # Original cues
             "conspiracy theory",
             "conspiracy theories",
             "claims that",
@@ -756,13 +884,152 @@ Output only the rewritten factual claim (no quotes).
             "hoax claim",
             "hoax claims",
             "pseudoscience",
+            
+            # New additions - direct refutation
+            "incorrect",
+            "inaccurate",
+            "untrue",
+            "not true",
+            "not accurate",
+            "not correct",
+            "factually wrong",
+            "factually incorrect",
+            "proven false",
+            "shown to be false",
+            "demonstrated to be false",
+            
+            # Evidence-based refutation
+            "contradicts",
+            "contradicted by",
+            "contrary to",
+            "inconsistent with",
+            "conflicts with",
+            "disputed by",
+            "challenged by",
+            "questioned by",
+            
+            # Epistemic markers of doubt
+            "unsubstantiated",
+            "unverified",
+            "unfounded",
+            "baseless",
+            "groundless",
+            "unsupported",
+            "lacks support",
+            "lacks credibility",
+            
+            # Fact-checking language
+            "fact check",
+            "fact-check",
+            "rated false",
+            "pants on fire",
+            "mostly false",
+            "misleading",
+            "misrepresents",
+            "misrepresented",
+            
+            # Scientific refutation
+            "no scientific evidence",
+            "scientifically unsound",
+            "not supported by science",
+            "rejected by experts",
+            "consensus disagrees",
         ]
-        return any(c in b for c in refute_cues)
+        
+        # Check for refute cues with negation awareness
+        for cue in refute_cues:
+            if cue in b:
+                # Find position of cue
+                pos = b.find(cue)
+                # Check if it's negated (e.g., "not debunked" should NOT count as refute)
+                if not RealToolkit._detect_negation_context(b, pos):
+                    return True
+        
+        return False
+
+    @staticmethod
+    def _compute_refute_intensity(text_blob: str) -> float:
+        """
+        Compute intensity score [0,1] for refutation strength with density normalization.
+        Higher scores indicate stronger, more definitive refutation.
+        Accounts for text length to avoid bias from long texts.
+        """
+        b = _norm_text(text_blob)
+        word_count = len(b.split())
+        
+        # Strong refutation markers (0.8-1.0)
+        strong_markers = [
+            "proven false", "demonstrated to be false", "definitively false",
+            "completely false", "entirely false", "thoroughly debunked",
+            "scientifically impossible", "physically impossible",
+            "rated false", "pants on fire"
+        ]
+        
+        # Moderate refutation markers (0.5-0.7)
+        moderate_markers = [
+            "debunked", "refuted", "disproved", "false", "incorrect",
+            "inaccurate", "myth", "misconception", "conspiracy theory",
+            "no evidence", "lacks evidence", "unsubstantiated"
+        ]
+        
+        # Weak refutation markers (0.3-0.5)
+        weak_markers = [
+            "disputed", "questioned", "challenged", "alleged",
+            "claims that", "claim that", "unverified", "misleading"
+        ]
+        
+        strong_count = 0
+        moderate_count = 0
+        weak_count = 0
+        
+        for marker in strong_markers:
+            if marker in b:
+                pos = b.find(marker)
+                if not RealToolkit._detect_negation_context(b, pos):
+                    strong_count += 1
+        
+        for marker in moderate_markers:
+            if marker in b:
+                pos = b.find(marker)
+                if not RealToolkit._detect_negation_context(b, pos):
+                    moderate_count += 1
+        
+        for marker in weak_markers:
+            if marker in b:
+                pos = b.find(marker)
+                if not RealToolkit._detect_negation_context(b, pos):
+                    weak_count += 1
+        
+        # Compute density-adjusted intensity (markers per 100 words)
+        if word_count == 0:
+            return 0.0
+        
+        strong_density = strong_count / max(1, word_count / 100)
+        moderate_density = moderate_count / max(1, word_count / 100)
+        weak_density = weak_count / max(1, word_count / 100)
+        
+        # Weighted combination with density adjustment
+        max_intensity = 0.0
+        if strong_density > 0:
+            max_intensity = max(max_intensity, min(0.9, 0.7 + strong_density * 0.2))
+        if moderate_density > 0:
+            max_intensity = max(max_intensity, min(0.7, 0.5 + moderate_density * 0.2))
+        if weak_density > 0:
+            max_intensity = max(max_intensity, min(0.5, 0.3 + weak_density * 0.2))
+        
+        return max_intensity
 
     @staticmethod
     def _has_affirm_cues(text_blob: str) -> bool:
+        """
+        Enhanced affirm cue detection with expanded vocabulary and negation handling.
+        Returns True if text contains cues that support/confirm a claim.
+        """
         b = _norm_text(text_blob)
+        
+        # Expanded affirm cues (40+ patterns)
         affirm_cues = [
+            # Original cues
             "confirmed",
             "evidence shows",
             "evidence that",
@@ -776,22 +1043,594 @@ Output only the rewritten factual claim (no quotes).
             "astronauts walked",
             "mission returned",
             "official records",
+            
+            # New additions - verification language
+            "verified",
+            "verified by",
+            "authenticated",
+            "validated",
+            "substantiated",
+            "corroborated",
+            "proven",
+            "proven true",
+            "proven to be true",
+            "demonstrated",
+            "established",
+            
+            # Evidence-based affirmation
+            "supported by evidence",
+            "backed by evidence",
+            "evidence confirms",
+            "evidence supports",
+            "data shows",
+            "data confirms",
+            "studies show",
+            "research shows",
+            "research confirms",
+            "findings show",
+            "findings confirm",
+            
+            # Expert consensus
+            "experts agree",
+            "scientific consensus",
+            "widely accepted",
+            "generally accepted",
+            "consensus is",
+            "agreed upon",
+            
+            # Factual statements
+            "it is true that",
+            "indeed",
+            "in fact",
+            "actually occurred",
+            "actually happened",
+            "did occur",
+            "did happen",
+            "took place",
+            "occurred in",
+            "happened in",
+            
+            # Documentary evidence
+            "documented",
+            "recorded",
+            "on record",
+            "historical record",
+            "archives show",
+            "records indicate",
         ]
-        return any(c in b for c in affirm_cues)
+        
+        # Check for affirm cues with negation awareness
+        # Important: check each occurrence separately to handle compound sentences
+        found_affirm = False
+        for cue in affirm_cues:
+            pos = 0
+            while True:
+                pos = b.find(cue, pos)
+                if pos == -1:
+                    break
+                # Check if this specific occurrence is negated
+                if not RealToolkit._detect_negation_context(b, pos):
+                    found_affirm = True
+                    break
+                pos += len(cue)
+            if found_affirm:
+                break
+        
+        return found_affirm
+
+    @staticmethod
+    def _compute_affirm_intensity(text_blob: str) -> float:
+        """
+        Compute intensity score [0,1] for affirmation strength with density normalization.
+        Higher scores indicate stronger, more definitive support.
+        Accounts for text length to avoid bias from long texts.
+        """
+        b = _norm_text(text_blob)
+        word_count = len(b.split())
+        
+        # Strong affirmation markers (0.8-1.0)
+        strong_markers = [
+            "proven", "proven true", "definitively true", "conclusively proven",
+            "scientifically proven", "verified", "authenticated", "confirmed",
+            "scientific consensus", "experts agree", "established fact"
+        ]
+        
+        # Moderate affirmation markers (0.5-0.7)
+        moderate_markers = [
+            "evidence shows", "evidence supports", "data confirms",
+            "studies show", "research shows", "documented", "recorded",
+            "widely accepted", "generally accepted", "substantiated"
+        ]
+        
+        # Weak affirmation markers (0.3-0.5)
+        weak_markers = [
+            "suggests", "indicates", "appears to", "seems to",
+            "likely", "probably", "reportedly", "allegedly true"
+        ]
+        
+        strong_count = 0
+        moderate_count = 0
+        weak_count = 0
+        
+        for marker in strong_markers:
+            if marker in b:
+                pos = b.find(marker)
+                if not RealToolkit._detect_negation_context(b, pos):
+                    strong_count += 1
+        
+        for marker in moderate_markers:
+            if marker in b:
+                pos = b.find(marker)
+                if not RealToolkit._detect_negation_context(b, pos):
+                    moderate_count += 1
+        
+        for marker in weak_markers:
+            if marker in b:
+                pos = b.find(marker)
+                if not RealToolkit._detect_negation_context(b, pos):
+                    weak_count += 1
+        
+        # Compute density-adjusted intensity (markers per 100 words)
+        if word_count == 0:
+            return 0.0
+        
+        strong_density = strong_count / max(1, word_count / 100)
+        moderate_density = moderate_count / max(1, word_count / 100)
+        weak_density = weak_count / max(1, word_count / 100)
+        
+        # Weighted combination with density adjustment
+        max_intensity = 0.0
+        if strong_density > 0:
+            max_intensity = max(max_intensity, min(0.9, 0.7 + strong_density * 0.2))
+        if moderate_density > 0:
+            max_intensity = max(max_intensity, min(0.7, 0.5 + moderate_density * 0.2))
+        if weak_density > 0:
+            max_intensity = max(max_intensity, min(0.5, 0.3 + weak_density * 0.2))
+        
+        return max_intensity
+
+    @staticmethod
+    def _semantic_anchor_match(anchors: set, blob: str) -> Tuple[int, float]:
+        """
+        Enhanced anchor matching with fuzzy matching and semantic weighting.
+        Returns: (exact_matches, weighted_score)
+        """
+        from difflib import SequenceMatcher
+        
+        blob_n = _norm_text(blob)
+        blob_words = set(blob_n.split())
+        
+        exact_matches = 0
+        weighted_score = 0.0
+        
+        for anchor in anchors:
+            if not anchor:
+                continue
+            
+            anchor_n = _norm_text(str(anchor))
+            
+            # Exact match
+            if anchor_n in blob_n:
+                # Weight by anchor type
+                if re.match(r'^\d{4}$', str(anchor)):  # Year
+                    weighted_score += 2.0  # Increased from 1.5
+                elif len(str(anchor)) > 8:  # Likely entity/proper noun
+                    weighted_score += 2.5  # Increased from 2.0
+                else:  # Regular keyword
+                    weighted_score += 1.5  # Increased from 1.0
+                exact_matches += 1
+            else:
+                # Fuzzy match for typos/variations
+                best_ratio = 0.0
+                for word in blob_words:
+                    if len(word) >= 4 and len(anchor_n) >= 4:
+                        ratio = SequenceMatcher(None, anchor_n, word).ratio()
+                        best_ratio = max(best_ratio, ratio)
+                
+                # Accept fuzzy matches above threshold
+                if best_ratio >= 0.85:
+                    weighted_score += 0.5 * best_ratio
+                    exact_matches += 0.5
+        
+        return int(exact_matches), weighted_score
+
+    # ---------- Numerical Reasoning ----------
+    @staticmethod
+    def _extract_numbers_with_units(text: str) -> List[Tuple[str, float, str]]:
+        """
+        Extract numbers with their context and units from text.
+        Returns: [(context, value, unit), ...]
+        
+        Examples:
+        - "population 2.2 million" -> [("population", 2200000.0, "")]
+        - "8,849 meters tall" -> [("tall", 8849.0, "meters")]
+        - "GDP of $20 trillion" -> [("gdp", 20000000000000.0, "")]
+        """
+        text_lower = text.lower()
+        results = []
+        
+        # Unit multipliers
+        multipliers = {
+            "trillion": 1e12,
+            "billion": 1e9,
+            "million": 1e6,
+            "thousand": 1e3,
+            "hundred": 1e2,
+        }
+        
+        # Length conversions (to meters)
+        length_units = {
+            "meters": 1.0,
+            "meter": 1.0,
+            "m": 1.0,
+            "feet": 0.3048,
+            "foot": 0.3048,
+            "ft": 0.3048,
+            "kilometers": 1000.0,
+            "kilometer": 1000.0,
+            "km": 1000.0,
+            "miles": 1609.34,
+            "mile": 1609.34,
+            "mi": 1609.34,
+        }
+        
+        # Pattern for numbers with optional commas and decimals
+        number_pattern = r"(\d+(?:,\d{3})*(?:\.\d+)?)"
+        
+        # Find all numbers in text
+        for match in re.finditer(number_pattern, text_lower):
+            num_str = match.group(1).replace(",", "")
+            try:
+                base_value = float(num_str)
+            except:
+                continue
+            
+            start_pos = match.start()
+            end_pos = match.end()
+            
+            # Extract context (3 words before)
+            context_start = max(0, start_pos - 50)
+            context = text_lower[context_start:start_pos].strip()
+            context_words = context.split()[-5:] if context else []
+            context_str = " ".join(context_words)
+            
+            # Look for unit/multiplier after number (within 20 chars)
+            after_text = text_lower[end_pos:end_pos+20].strip()
+            
+            # Check for multipliers
+            final_value = base_value
+            unit = ""
+            
+            # Use regex with word boundary for correct matching
+            # e.g. match "m" but not "million"
+            
+            found_mult = False
+            for mult_word, mult_val in multipliers.items():
+                if re.match(r"^" + re.escape(mult_word) + r"\b", after_text):
+                    final_value *= mult_val
+                    # Consume the multiplier text logic would be better, but for now 
+                    # we just need to ensure we don't double match if we don't consume.
+                    # But to handle "2 million meters", we should ideally look for unit AFTER multiplier.
+                    
+                    # Let's try to match unit in the REMAINING text if multiplier found
+                    match = re.match(r"^" + re.escape(mult_word) + r"\b", after_text)
+                    remaining = after_text[match.end():].strip()
+                    
+                    for unit_word, unit_val in length_units.items():
+                         if re.match(r"^" + re.escape(unit_word) + r"\b", remaining):
+                             unit = "meters"
+                             final_value *= unit_val
+                             break
+                    
+                    found_mult = True
+                    break
+            
+            if not found_mult:
+                # Check for length units directly (no multiplier)
+                for unit_word, unit_val in length_units.items():
+                    if re.match(r"^" + re.escape(unit_word) + r"\b", after_text):
+                        unit = "meters"
+                        final_value *= unit_val
+                        break
+            
+            results.append((context_str, final_value, unit))
+        
+        return results
+
+    @staticmethod
+    def _compare_numerical_values(
+        claim_val: float,
+        evidence_val: float,
+        tolerance: float = 0.1
+    ) -> bool:
+        """
+        Compare numerical values with tolerance.
+        tolerance=0.1 means 10% difference is acceptable.
+        
+        Examples:
+        - compare(2200000, 2161000, 0.1) -> True (within 10%)
+        - compare(8849, 8850, 0.1) -> True (very close)
+        - compare(20, 15, 0.1) -> False (25% difference)
+        """
+        if claim_val == 0 and evidence_val == 0:
+            return True
+        
+        if claim_val == 0 or evidence_val == 0:
+            # One is zero, other is not
+            return False
+        
+        # Calculate relative difference
+        max_val = max(abs(claim_val), abs(evidence_val))
+        diff = abs(claim_val - evidence_val)
+        relative_diff = diff / max_val
+        
+        return relative_diff <= tolerance
+
+    @staticmethod
+    def _verify_numerical_claim(
+        claim_numbers: List[Tuple[str, float, str]],
+        evidence_numbers: List[Tuple[str, float, str]]
+    ) -> Optional[bool]:
+        """
+        Verify numerical claim against evidence numbers.
+        Returns:
+        - True if numbers match (within tolerance)
+        - False if numbers clearly mismatch
+        - None if cannot determine
+        """
+        if not claim_numbers or not evidence_numbers:
+            return None
+        
+        # Try to match numbers by context similarity
+        for claim_ctx, claim_val, claim_unit in claim_numbers:
+            for evidence_ctx, evidence_val, evidence_unit in evidence_numbers:
+                # If units are specified and different, skip
+                if claim_unit and evidence_unit and claim_unit != evidence_unit:
+                    continue
+                
+                # Check if contexts are related (simple word overlap)
+                claim_words = set(claim_ctx.split())
+                evidence_words = set(evidence_ctx.split())
+                
+                # If contexts overlap OR both are empty (just numbers)
+                if claim_words & evidence_words or (not claim_ctx and not evidence_ctx):
+                    # Compare values
+                    if RealToolkit._compare_numerical_values(claim_val, evidence_val):
+                        return True  # Match found!
+        
+        # Check if any claim number has a clear mismatch
+        # (same context but different value)
+        for claim_ctx, claim_val, claim_unit in claim_numbers:
+            for evidence_ctx, evidence_val, evidence_unit in evidence_numbers:
+                if claim_unit and evidence_unit and claim_unit != evidence_unit:
+                    continue
+                
+                claim_words = set(claim_ctx.split())
+                evidence_words = set(evidence_ctx.split())
+                
+                if claim_words & evidence_words:
+                    # Same context but values don't match
+                    if not RealToolkit._compare_numerical_values(claim_val, evidence_val, tolerance=0.2):
+                        return False  # Clear mismatch!
+        
+        return None  # Cannot determine
+
+    # ---------- Comparative/Superlative Handling ----------
+    @staticmethod
+    def _detect_comparative_claim(text: str) -> Optional[Dict[str, Any]]:
+        """
+        Detect and parse comparative/superlative claims.
+        Returns: {
+            "type": "comparative" | "superlative",
+            "entity": str,
+            "attribute": str,
+            "comparator": str,
+            "reference": str    # comparison target (for comparative)
+        }
+        """
+        text_lower = text.lower()
+        
+        # Superlative patterns
+        # "X is the tallest/most/best..."
+        sup_patterns = [
+            r"the (most \w+|least \w+|best|worst|tallest|shortest|biggest|smallest|highest|lowest|fastest|slowest|oldest|youngest|first|last) (.+)",
+        ]
+        
+        for p in sup_patterns:
+            m = re.search(p, text_lower)
+            if m:
+                return {
+                    "type": "superlative",
+                    "comparator": m.group(1),
+                    "context": m.group(2)
+                }
+        
+        # Comparative patterns
+        # "X is taller/more than Y"
+        comp_patterns = [
+            r"(.+) is (more \w+|less \w+|better|worse|\w+er) than (.+)",
+        ]
+        
+        for p in comp_patterns:
+            m = re.search(p, text_lower)
+            if m:
+                return {
+                    "type": "comparative",
+                    "entity_a": m.group(1).strip(" .,!?"),
+                    "comparator": m.group(2).strip(),
+                    "entity_b": m.group(3).strip(" .,!?")
+                }
+        
+        return None
+
+    @staticmethod
+    def _verify_comparative_claim(
+        claim_info: Dict[str, Any],
+        evidence_text: str
+    ) -> Optional[bool]:
+        """
+        Verify comparative/superlative claims against evidence.
+        """
+        evidence_lower = evidence_text.lower()
+        
+        if claim_info["type"] == "superlative":
+            comparator = claim_info["comparator"]
+            
+            # Direct confirmation of superlative
+            # e.g. "tallest" -> confirm if evidence says "tallest", "highest peak", "no mountain taller"
+            
+            # Map comparators to synonyms
+            synonyms = {
+                "tallest": ["highest", "highest peak", "maximum height"],
+                "highest": ["tallest", "highest peak", "maximum height"],
+                "biggest": ["largest", "massive", "huge", "gigantic"],
+                "largest": ["biggest", "massive", "huge", "gigantic"],
+                "fastest": ["quickest", "speed record"],
+                "oldest": ["earliest", "ancient", "first"],
+                "first": ["initial", "pioneer", "earliest"],
+            }
+            
+            search_terms = [comparator] + synonyms.get(comparator.split()[-1], [])
+            
+            for term in search_terms:
+                if term in evidence_lower:
+                    # Check for negation
+                    pos = evidence_lower.find(term)
+                    if not RealToolkit._detect_negation_context(evidence_lower, pos):
+                        return True
+            
+            # Check for refutation
+            if "not the " + comparator in evidence_lower:
+                return False
+                
+            return None
+
+        elif claim_info["type"] == "comparative":
+            entity_a = claim_info["entity_a"]
+            entity_b = claim_info["entity_b"]
+            comparator = claim_info["comparator"]
+            
+            # 1. Check for direct statement
+            # "A is taller than B" or "B is shorter than A"
+            if f"{entity_a} is {comparator} than {entity_b}" in evidence_lower:
+                return True
+            
+            # 2. Check for numerical comparison if available
+            # This would require extracting numbers for both entities
+            # For now, rely on text cues
+            
+            return None # Difficult to verify without numbers or direct statement
+
+        return None
+    @staticmethod
+    # ---------- Multi-hop Reasoning ----------
+    @staticmethod
+    def _detect_multi_hop_claim(text: str) -> Optional[Dict[str, Any]]:
+        """
+        Detect claims requiring multi-hop reasoning.
+        Returns info about relations if detected.
+        
+        Examples:
+        - "Obama's wife was born in Chicago" -> possessive
+        - "The author of Harry Potter lives in UK" -> relation
+        """
+        text_lower = text.lower()
+        
+        # Possessive patterns: "X's Y", "Y of X"
+        if "'s " in text_lower:
+            return {"type": "possessive", "hint": "Check relationships (possessives) between entities"}
+            
+        # Relation patterns
+        relations = [
+            "wife of", "husband of", "son of", "daughter of", "mother of", "father of",
+            "author of", "creator of", "inventor of", "founder of", "ceo of",
+            "capital of", "president of", "leader of", "member of"
+        ]
+        
+        for rel in relations:
+            if rel in text_lower:
+                return {"type": "relation", "hint": f"Trace the '{rel}' relationship"}
+        
+        # Implicit chains (harder to detect using simple regex)
+        # But we can look for specific entity bridging phrases
+        bridging = [
+            "same as", "different from", "related to", "based on"
+        ]
+        for bridge in bridging:
+            if bridge in text_lower:
+                return {"type": "chain", "hint": "Follow the connection between entities"}
+                
+        return None
+    def _extract_temporal_context(text: str) -> List[str]:
+        """
+        Extract temporal expressions from text.
+        Returns list of year strings found.
+        """
+        years = re.findall(r'\b(19\d{2}|20\d{2})\b', text)
+        return years
+
+    @staticmethod
+    def _check_temporal_consistency(claim_years: List[str], evidence_years: List[str]) -> bool:
+        """
+        Check if temporal context in claim matches evidence.
+        More lenient to avoid false negatives from historical context.
+        Returns True if consistent or no temporal conflict detected.
+        """
+        if not claim_years or not evidence_years:
+            return True  # No temporal info to check
+        
+        # Check for year mismatches
+        claim_year_set = set(claim_years)
+        evidence_year_set = set(evidence_years)
+        
+        # If there's overlap, consider consistent
+        if claim_year_set & evidence_year_set:
+            return True
+        
+        # If evidence has MANY years (>= 5), likely historical/background context
+        # Don't penalize for this
+        if len(evidence_year_set) >= 5:
+            return True
+        
+        # Check if years are close (within 5 years for more leniency)
+        min_diff = float('inf')
+        for cy in claim_years:
+            for ey in evidence_years:
+                try:
+                    diff = abs(int(cy) - int(ey))
+                    min_diff = min(min_diff, diff)
+                    if diff <= 5:  # More lenient threshold
+                        return True
+                except:
+                    pass
+        
+        # Only flag as inconsistent if years are VERY different (>5 years)
+        # and evidence doesn't have many years (historical context)
+        return min_diff <= 5
 
     @staticmethod
     def _evidence_heuristic_verdict(clean_fact: str, hits: List[Dict[str, str]]) -> Tuple[Optional[bool], str]:
         """
-        Stance-aware heuristic.
+        ENHANCED Stance-aware heuristic with:
+        - Semantic pattern-based hoax detection
+        - Expanded cue vocabulary with negation handling
+        - Intensity-based scoring
+        - Semantic anchor matching
+        - Temporal consistency checking
+        - Generalized pattern matching
+        
         Returns: (verdict, strength)
           - verdict: True / False / None(ABSTAIN)
           - strength: "strong" or "weak" (only meaningful if verdict is not None)
+        
         Policy:
           - For hoax-like claims:
               if trusted snippets have strong refute cues => FALSE (strong)
               never return TRUE from mere keyword overlap
           - For non-hoax:
-              return TRUE only with strong affirm cues AND anchor coverage (strong)
+              return TRUE only with strong affirm cues AND good anchor coverage (strong)
+          - Use intensity scoring to determine strength
+          - Check temporal consistency
           - Otherwise return None
         """
         hoaxy = RealToolkit._is_hoaxy_claim(clean_fact)
@@ -803,39 +1642,124 @@ Output only the rewritten factual claim (no quotes).
         blob = " ".join([(h.get("title", "") + " " + h.get("snippet", "")) for h in trusted_hits])
         blob_n = _norm_text(blob)
 
-        if hoaxy and RealToolkit._has_refute_cues(blob_n):
-            return False, "strong"
+        # Compute stance intensities
+        refute_intensity = RealToolkit._compute_refute_intensity(blob_n)
+        affirm_intensity = RealToolkit._compute_affirm_intensity(blob_n)
+
+        # For hoax claims: strong refutation => FALSE
+        if hoaxy:
+            if RealToolkit._has_refute_cues(blob_n):
+                strength = "strong" if refute_intensity >= 0.6 else "weak"
+                return False, strength
+            # Never affirm hoax claims from heuristic alone
+            return None, "weak"
 
         fact = _norm_text(clean_fact)
 
-        # Safe negative special-case for Olympics host misinformation
-        if "2024" in fact and "summer olympics" in fact and ("tokyo" in fact or "los angeles" in fact):
-            if "tokyo" in fact and "2024" in fact:
-                return False, "strong"
-            if ("los angeles" in fact or "l.a" in fact) and "2024" in fact:
-                return False, "strong"
+        # Temporal consistency check
+        claim_years = RealToolkit._extract_temporal_context(clean_fact)
+        evidence_years = RealToolkit._extract_temporal_context(blob)
+        temporal_consistent = RealToolkit._check_temporal_consistency(claim_years, evidence_years)
+        
+        if not temporal_consistent:
+            # Temporal mismatch suggests claim might be false for the stated time
+            return False, "strong"
 
+        # Check for numerical claims (GAP 1)
+        claim_numbers = RealToolkit._extract_numbers_with_units(clean_fact)
+        evidence_numbers = RealToolkit._extract_numbers_with_units(blob)
+
+        if claim_numbers and evidence_numbers:
+            numerical_match = RealToolkit._verify_numerical_claim(
+                claim_numbers, evidence_numbers
+            )
+            if numerical_match is True:
+                # Strong signal: numbers match exactly
+                return True, "strong (numerical)"
+            elif numerical_match is False:
+                # Strong signal: numbers mismatch clearly
+                return False, "strong (numerical)"
+
+        # Check for comparative/superlative claims (GAP 2)
+        comp_info = RealToolkit._detect_comparative_claim(clean_fact)
+        if comp_info:
+            comp_result = RealToolkit._verify_comparative_claim(comp_info, blob)
+            if comp_result is not None:
+                # Comparative verification is usually strong
+                return comp_result, "strong (comparative)"
+
+        # Extract anchors with ENTITY PRIORITY
         years = re.findall(r"\b(19\d{2}|20\d{2})\b", clean_fact)
         anchors = set(years)
 
-        words = re.findall(r"[a-zA-Z]{4,}", clean_fact.lower())
-        stop = {
-            "that", "this", "with", "from", "were", "held", "host", "hosted",
-            "equals", "year", "percent", "square", "root", "claim", "proof",
-        }
-        for w in words:
-            if w not in stop:
-                anchors.add(w)
-            if len(anchors) >= 8:
-                break
+        # Use existing entity extraction for better anchor quality
+        entities = RealToolkit._extract_entities(clean_fact)
+        for ent in entities:
+            anchors.add(ent.lower())
 
-        matched = [a for a in anchors if a and a in blob_n]
+        # Only add keywords if we don't have enough anchors
+        if len(anchors) < 5:
+            words = re.findall(r"[a-zA-Z]{4,}", clean_fact.lower())
+            stop = {
+                "that", "this", "with", "from", "were", "held", "host", "hosted",
+                "equals", "year", "percent", "square", "root", "claim", "proof",
+                "about", "would", "could", "should", "because", "therefore"
+            }
+            for w in words:
+                if w not in stop:
+                    anchors.add(w)
+                if len(anchors) >= 10:
+                    break
 
-        if hoaxy:
+        # Semantic anchor matching
+        exact_matches, weighted_score = RealToolkit._semantic_anchor_match(anchors, blob_n)
+
+        # Decision logic with CONFLICT RESOLUTION
+        has_affirm = RealToolkit._has_affirm_cues(blob_n)
+        has_refute = RealToolkit._has_refute_cues(blob_n)
+
+        # CONFLICT: both affirm and refute present
+        if has_affirm and has_refute:
+            # Use intensity difference to decide
+            intensity_diff = affirm_intensity - refute_intensity
+            
+            if abs(intensity_diff) < 0.2:
+                # Too close to call - signals are balanced
+                return None, "weak"
+            elif intensity_diff > 0.2:
+                # Affirm dominates
+                if affirm_intensity >= 0.6 and weighted_score >= 4.0:
+                    return True, "weak"  # Weak because of conflict
+                elif affirm_intensity >= 0.5 and weighted_score >= 5.0:
+                    return True, "weak"
+            else:
+                # Refute dominates (intensity_diff < -0.2)
+                if refute_intensity >= 0.6:
+                    return False, "weak"  # Weak because of conflict
+                elif refute_intensity >= 0.5:
+                    return False, "weak"
+            
+            # Conflict but no clear winner
             return None, "weak"
 
-        if RealToolkit._has_affirm_cues(blob_n) and len(matched) >= 4:
-            return True, "strong"
+        # NO CONFLICT: only refute
+        if has_refute:
+            if refute_intensity >= 0.6:
+                return False, "strong"
+            elif refute_intensity >= 0.4:
+                return False, "weak"
+        
+        # NO CONFLICT: only affirm
+        if has_affirm:
+            # Strong affirmation with good coverage
+            if affirm_intensity >= 0.6 and weighted_score >= 4.0:
+                return True, "strong"
+            # Moderate affirmation with excellent coverage
+            elif weighted_score >= 6.0 and affirm_intensity >= 0.5:
+                return True, "strong"
+            # Weak signals
+            elif affirm_intensity >= 0.4 and weighted_score >= 3.0:
+                return True, "weak"
 
         return None, "weak"
 
@@ -857,7 +1781,7 @@ Reply with ONLY one of: TRUE, FALSE, ABSTAIN.
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
             )
-            ans = res.choices[0].message.content.strip().upper()
+            ans = (res.choices[0].message.content or "").strip().upper()
             if "ABSTAIN" in ans:
                 return None
             if "TRUE" in ans:
@@ -874,39 +1798,45 @@ Reply with ONLY one of: TRUE, FALSE, ABSTAIN.
         RAG + judge: stance classification with citations to snippet ids.
         Returns: (verdict, llm_confidence, support_ids, refute_ids, rationale_short)
         """
+        multihop_info = RealToolkit._detect_multi_hop_claim(clean_fact)
+        hint = ""
+        if multihop_info:
+            hint = f"\n  IMPORTANT: {multihop_info.get('hint', '')}\n  This claim requires MULTI-HOP reasoning. Combine information from multiple snippets."
+
         prompt = f"""
-You are an evidence-based fact checker.
-
-Fact:
-{clean_fact}
-
-Evidence snippets (numbered):
-{evidence_lines}
-
-Task:
-1) Decide whether the evidence SUPPORTS the fact (TRUE), CONTRADICTS it (FALSE), or is INSUFFICIENT (ABSTAIN).
-2) Cite which snippet numbers support (support_ids) and which contradict (refute_ids).
-3) Provide confidence in [0,1] (only high if evidence is direct and unambiguous).
-4) Keep rationale under 2 sentences.
-
-Output STRICT JSON with keys:
-- "verdict": "TRUE" | "FALSE" | "ABSTAIN"
-- "confidence": number
-- "support_ids": array of integers
-- "refute_ids": array of integers
-- "rationale": string
-"""
+ You are an evidence-based fact checker.
+ 
+ Fact:
+ {clean_fact}{hint}
+ 
+ Evidence snippets (numbered):
+ {evidence_lines}
+ 
+ Task:
+ 1) Decide whether the evidence SUPPORTS the fact (TRUE), CONTRADICTS it (FALSE), or is INSUFFICIENT (ABSTAIN).
+ 2) Cite which snippet numbers support (support_ids) and which contradict (refute_ids).
+ 3) Provide confidence in [0,1] (only high if evidence is direct and unambiguous).
+ 4) Keep rationale under 2 sentences.
+ 
+ Output STRICT JSON with keys:
+ - "verdict": "TRUE" | "FALSE" | "ABSTAIN"
+ - "confidence": number
+ - "support_ids": array of integers
+ - "refute_ids": array of integers
+ - "rationale": string
+ """
         try:
             res = client.chat.completions.create(
                 model=JUDGE_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
             )
-            raw = res.choices[0].message.content.strip()
+            raw = (res.choices[0].message.content or "").strip()
             data = _safe_json_loads(raw)
             if not isinstance(data, dict):
                 m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
                 data = _safe_json_loads(m.group(0)) if m else None
+
 
             if not isinstance(data, dict):
                 return None, 0.0, [], [], "Judge parse failed"
@@ -938,6 +1868,71 @@ Output STRICT JSON with keys:
             return None, conf, sup_i, ref_i, rat
         except Exception:
             return None, 0.0, [], [], "Judge error"
+
+
+    @staticmethod
+    def _llm_semantic_fallback(clean_fact: str, evidence_lines: str) -> Tuple[Optional[bool], float, str]:
+        """
+        Semantic reasoning fallback - focuses on INDIRECT evidence and INFERENCE.
+        Different from RAG judge which requires DIRECT evidence.
+        This is used when RAG judge finds evidence insufficient for direct verification.
+        Returns: (verdict, confidence, rationale)
+        """
+        prompt = f"""
+You are a reasoning expert. The previous judge found the evidence insufficient for DIRECT verification.
+Your task: use INDIRECT evidence, INFERENCE, and REASONING to judge the claim.
+
+Claim:
+{clean_fact}
+
+Evidence snippets (may be indirect):
+{evidence_lines}
+
+Instructions:
+1. Look for INDIRECT support (related facts, context, implications)
+2. Use LOGICAL INFERENCE from the evidence
+3. Consider what the evidence IMPLIES even if not stated directly
+4. Consider domain knowledge and common patterns
+5. Only ABSTAIN if evidence is completely irrelevant or contradictory
+
+Confidence guidelines:
+- Use 0.5-0.7 for reasonable inferences from indirect evidence
+- Use 0.7-0.9 for strong logical implications
+- Only use >0.9 if you find overlooked direct evidence
+
+Output STRICT JSON with keys:
+- "verdict": "TRUE" | "FALSE" | "ABSTAIN"
+- "confidence": number (be more lenient than direct evidence judge)
+- "rationale": explain your REASONING PROCESS and what you inferred
+"""
+        try:
+            res = client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+            )
+            raw = (res.choices[0].message.content or "").strip()
+            data = _safe_json_loads(raw)
+            if not isinstance(data, dict):
+                m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+                data = _safe_json_loads(m.group(0)) if m else None
+
+            if not isinstance(data, dict):
+                return None, 0.0, "Semantic judge parse failed"
+
+            v = str(data.get("verdict", "")).strip().upper()
+            conf = float(data.get("confidence", 0.0) or 0.0)
+            rat = str(data.get("rationale", "") or "")[:300]  # Longer rationale for reasoning
+            conf = max(0.0, min(1.0, conf))
+
+            if v == "TRUE":
+                return True, conf, rat
+            if v == "FALSE":
+                return False, conf, rat
+            return None, conf, rat
+        except Exception:
+            return None, 0.0, "Semantic judge error"
+
 
     # ---------- Confidence calibration ----------
     @staticmethod
@@ -1009,9 +2004,64 @@ Output STRICT JSON with keys:
             rationale=rat,
         )
 
-    # ---------- Voting ----------
+    # ---------- Voting (IMPROVED with weights) ----------
+    @staticmethod
+    def _vote_weighted(
+        v_serper: Optional[bool],
+        v_ddg: Optional[bool],
+        v_llm: Optional[bool],
+        serper_trusted: int = 0,
+        ddg_trusted: int = 0,
+    ) -> Optional[bool]:
+        """
+        Weighted voting that considers trusted source counts.
+        Serper/DDG votes weighted by trusted hit ratio.
+        LLM vote gets base weight of 1.0.
+        """
+        true_weight = 0.0
+        false_weight = 0.0
+        total_weight = 0.0
+
+        # Serper weight based on trusted hits (0.5 to 1.5)
+        serper_w = 0.5 + min(1.0, serper_trusted / 4.0)
+        if v_serper is True:
+            true_weight += serper_w
+            total_weight += serper_w
+        elif v_serper is False:
+            false_weight += serper_w
+            total_weight += serper_w
+
+        # DDG weight
+        ddg_w = 0.5 + min(1.0, ddg_trusted / 4.0)
+        if v_ddg is True:
+            true_weight += ddg_w
+            total_weight += ddg_w
+        elif v_ddg is False:
+            false_weight += ddg_w
+            total_weight += ddg_w
+
+        # LLM base weight
+        llm_w = 1.0
+        if v_llm is True:
+            true_weight += llm_w
+            total_weight += llm_w
+        elif v_llm is False:
+            false_weight += llm_w
+            total_weight += llm_w
+
+        if total_weight < 0.5:
+            return None
+
+        # Require >60% weight for decision
+        if true_weight / total_weight >= 0.6:
+            return True
+        if false_weight / total_weight >= 0.6:
+            return False
+        return None
+
     @staticmethod
     def _vote_2_of_3(v_serper: Optional[bool], v_ddg: Optional[bool], v_llm: Optional[bool]) -> Optional[bool]:
+        """Legacy simple voting for backward compatibility."""
         votes = [v_serper, v_ddg, v_llm]
         t = sum(1 for v in votes if v is True)
         f = sum(1 for v in votes if v is False)
@@ -1067,7 +2117,7 @@ Output STRICT JSON:
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
             )
-            raw = res.choices[0].message.content.strip()
+            raw = (res.choices[0].message.content or "").strip()
             data = _safe_json_loads(raw)
             if not isinstance(data, dict):
                 m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
@@ -1121,19 +2171,55 @@ Output STRICT JSON:
         RealToolkit._cache[key] = out
         return out
 
-    # ---------- Coverage gate (NEW) ----------
+    # ---------- Coverage gate (IMPROVED) ----------
     @staticmethod
     def _coverage_ok(fact: str, hits: List[Dict[str, str]]) -> bool:
+        """Check if search results adequately cover the claim's key terms."""
         blob = " ".join([(h.get("title", "") + " " + h.get("snippet", "")) for h in (hits or [])[:10]])
         blob_n = _norm_text(blob)
 
+        # Extract entities first (higher priority)
+        entities = RealToolkit._extract_entities(fact)
+        entity_hits = sum(1 for e in entities if _norm_text(e) in blob_n)
+
+        # Keywords
+        stopwords = {"because", "therefore", "usually", "often", "about", "would", "could", "should"}
         terms = re.findall(r"[a-zA-Z]{5,}", (fact or "").lower())
-        terms = [t for t in terms if t not in {"because", "therefore", "usually", "often", "about"}][:6]
-        if not terms:
+        terms = [t for t in terms if t not in stopwords][:6]
+
+        if not terms and not entities:
             return True
 
-        hit = sum(1 for t in terms if t in blob_n)
-        return hit >= max(2, int(0.4 * len(terms)))
+        term_hits = sum(1 for t in terms if t in blob_n)
+
+        # Entities are more important: if at least 1 entity found, lower threshold
+        if entity_hits >= 1:
+            return term_hits >= max(1, int(0.3 * len(terms)))
+
+        # Standard threshold
+        return term_hits >= max(2, int(0.4 * len(terms)))
+
+    @staticmethod
+    def _filter_quality_snippets(hits: List[Dict[str, str]], min_len: int = 40) -> List[Dict[str, str]]:
+        """Filter out low-quality snippets (too short, empty, or duplicated content)."""
+        seen_content = set()
+        out = []
+        for h in (hits or []):
+            snippet = (h.get("snippet") or "").strip()
+            title = (h.get("title") or "").strip()
+
+            # Skip too short
+            if len(snippet) < min_len:
+                continue
+
+            # Skip duplicated content (first 60 chars as fingerprint)
+            fp = _norm_text(snippet[:60])
+            if fp in seen_content:
+                continue
+            seen_content.add(fp)
+
+            out.append(h)
+        return out
 
     @staticmethod
     def _llm_suggest_queries(clean_fact: str) -> List[str]:
@@ -1158,7 +2244,7 @@ Output as strict JSON:
                 messages=[{"role": "user", "content": q_prompt}],
                 temperature=0.0,
             )
-            qj = _safe_json_loads(rr.choices[0].message.content.strip())
+            qj = _safe_json_loads((rr.choices[0].message.content or "").strip())
             if isinstance(qj, dict):
                 qs = qj.get("queries") or []
                 if isinstance(qs, list):
@@ -1310,26 +2396,44 @@ Output as strict JSON:
                         combined_hits = all_serper + all_ddg
 
                 trusted_hits = [h for h in combined_hits if _is_trusted_domain(h.get("url", ""))]
+                coverage_ok = RealToolkit._coverage_ok(clean_fact, combined_hits) if combined_hits else False
+                trusted_cnt = len(trusted_hits)
+                allow_heuristic = coverage_ok and trusted_cnt >= 2
 
-                v_serper, s_serper = RealToolkit._evidence_heuristic_verdict(clean_fact, all_serper)
-                v_ddg, s_ddg = RealToolkit._evidence_heuristic_verdict(clean_fact, all_ddg)
+                # Only compute heuristic verdicts if quality is sufficient
+                if allow_heuristic:
+                    v_serper, s_serper = RealToolkit._evidence_heuristic_verdict(clean_fact, all_serper)
+                    v_ddg, s_ddg = RealToolkit._evidence_heuristic_verdict(clean_fact, all_ddg)
 
-                print(
-                    f"        🧾 SERPER: hits={len(all_serper)} trusted={sum(1 for h in all_serper if _is_trusted_domain(h.get('url','')))} "
-                    f"heuristic={v_serper}({s_serper})"
-                )
-                print(
-                    f"        🧾 DDG: hits={len(all_ddg)} trusted={sum(1 for h in all_ddg if _is_trusted_domain(h.get('url','')))} "
-                    f"heuristic={v_ddg}({s_ddg})"
-                )
+                    print(
+                        f"        🧾 SERPER: hits={len(all_serper)} trusted={sum(1 for h in all_serper if _is_trusted_domain(h.get('url','')))} "
+                        f"heuristic={v_serper}({s_serper})"
+                    )
+                    print(
+                        f"        🧾 DDG: hits={len(all_ddg)} trusted={sum(1 for h in all_ddg if _is_trusted_domain(h.get('url','')))} "
+                        f"heuristic={v_ddg}({s_ddg})"
+                    )
 
-                v_all, s_all = RealToolkit._evidence_heuristic_verdict(clean_fact, combined_hits)
-                if v_all is not None and s_all == "strong":
-                    verdict = v_all
-                    RealToolkit._cache[cache_key] = verdict
-                    status_icon = "✅" if verdict else "❌"
-                    print(f"        └─ {status_icon} Heuristic(strong) Result: {'TRUE' if verdict else 'FALSE'}")
-                    return verdict
+                    v_all, s_all = RealToolkit._evidence_heuristic_verdict(clean_fact, combined_hits)
+                    if v_all is not None and s_all.startswith("strong"):
+                        verdict = v_all
+                        RealToolkit._cache[cache_key] = verdict
+                        status_icon = "✅" if verdict else "❌"
+                        print(f"        └─ {status_icon} Heuristic(strong) Result: {'TRUE' if verdict else 'FALSE'}")
+                        return verdict
+                else:
+                    # Don't use heuristic verdicts in voting when quality is insufficient
+                    v_serper, s_serper = None, "weak"
+                    v_ddg, s_ddg = None, "weak"
+                    print(
+                        f"        🧾 SERPER: hits={len(all_serper)} trusted={sum(1 for h in all_serper if _is_trusted_domain(h.get('url','')))} "
+                        f"heuristic=SKIPPED"
+                    )
+                    print(
+                        f"        🧾 DDG: hits={len(all_ddg)} trusted={sum(1 for h in all_ddg if _is_trusted_domain(h.get('url','')))} "
+                        f"heuristic=SKIPPED"
+                    )
+                    print(f"        ⚠️ Heuristic skipped (coverage={coverage_ok}, trusted={trusted_cnt})")
 
                 evidence_base = trusted_hits if trusted_hits else combined_hits
                 evidence_lines = _summarize_hits(evidence_base, max_n=8) if evidence_base else ""
@@ -1350,21 +2454,29 @@ Output as strict JSON:
                     f"support={jr.support_ids} refute={jr.refute_ids} rationale={jr.rationale}"
                 )
 
-                # NEW: accept only if above threshold; otherwise treat as ABSTAIN and fallback
+                # NEW: accept only if above threshold; otherwise use semantic fallback then vote
                 if jr.verdict is True and jr.final_confidence >= RealToolkit.JUDGE_TRUE_MIN_FINAL_CONF:
                     final = True
                 elif jr.verdict is False and jr.final_confidence >= RealToolkit.JUDGE_FALSE_MIN_FINAL_CONF:
                     final = False
                 else:
-                    v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
-                    print(f"        🧠 COMMON_SENSE vote={v_cs}")
+                    sem_v, sem_conf, sem_rat = RealToolkit._llm_semantic_fallback(clean_fact, evidence_lines)
+                    print(
+                        f"        🧠 SEMANTIC vote={sem_v} conf={sem_conf:.2f} rationale={sem_rat}"
+                    )
 
-                    # CRITICAL FIX: don't default to FALSE when only common-sense votes
-                    if v_cs is not None and (v_serper is None) and (v_ddg is None):
-                        final = bool(v_cs)
+                    if sem_v is not None and sem_conf >= RealToolkit.JUDGE_FALLBACK_MIN_CONF:
+                        final = bool(sem_v)
                     else:
-                        final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
-                        final = bool(final_vote) if final_vote is not None else False
+                        v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
+                        print(f"        🧠 COMMON_SENSE vote={v_cs}")
+
+                        # CRITICAL FIX: don't default to FALSE when only common-sense votes
+                        if v_cs is not None and (v_serper is None) and (v_ddg is None):
+                            final = bool(v_cs)
+                        else:
+                            final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
+                            final = bool(final_vote) if final_vote is not None else False
 
                 RealToolkit._cache[cache_key] = bool(final)
                 status_icon = "✅" if final else "❌"
@@ -1386,7 +2498,7 @@ Verdict:
                 messages=[{"role": "user", "content": final_prompt}],
                 temperature=0.0,
             )
-            verdict_txt = res.choices[0].message.content.strip().upper()
+            verdict_txt = (res.choices[0].message.content or "").strip().upper()
             verdict = "TRUE" in verdict_txt
             RealToolkit._cache[cache_key] = verdict
             return verdict

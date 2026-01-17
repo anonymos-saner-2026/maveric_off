@@ -115,26 +115,31 @@ def aggregate_refinement_stats(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     Returns:
         {
             "avg_pruned": float,
-            "avg_edges_removed": float,
-            "avg_sgs_size": float,
-            ...
-        }
+        "avg_edges_removed": float,
+        "avg_edges_removed_pruned": float,
+        "avg_sgs_size": float,
+        ...
+    }
     """
     if not results:
         return {
             "avg_pruned": 0.0,
             "avg_edges_removed": 0.0,
+            "avg_edges_removed_pruned": 0.0,
             "avg_sgs_size": 0.0,
         }
+
     
     pruned = []
     edges_removed = []
+    edges_removed_pruned = []
     sgs_sizes = []
     
     for r in results:
         stats = r.get("refinement_stats", {})
         pruned.append(stats.get("pruned", 0))
         edges_removed.append(stats.get("edges_removed", 0))
+        edges_removed_pruned.append(stats.get("edges_removed_pruned", 0))
         sgs_sizes.append(stats.get("sgs_size", 0))
     
     return {
@@ -142,6 +147,8 @@ def aggregate_refinement_stats(results: List[Dict[str, Any]]) -> Dict[str, Any]:
         "std_pruned": float(np.std(pruned)) if pruned else 0.0,
         "avg_edges_removed": float(np.mean(edges_removed)) if edges_removed else 0.0,
         "std_edges_removed": float(np.std(edges_removed)) if edges_removed else 0.0,
+        "avg_edges_removed_pruned": float(np.mean(edges_removed_pruned)) if edges_removed_pruned else 0.0,
+        "std_edges_removed_pruned": float(np.std(edges_removed_pruned)) if edges_removed_pruned else 0.0,
         "avg_sgs_size": float(np.mean(sgs_sizes)) if sgs_sizes else 0.0,
         "std_sgs_size": float(np.std(sgs_sizes)) if sgs_sizes else 0.0,
     }

@@ -1,0 +1,232 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "moderator",
+      "content": "The spiciest part of a chili pepper is not just the placenta; it's the entire structure surrounding it, which I term the 'Spice Matrix.'",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "This unique configuration amplifies the heat by at least 200%.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A4",
+      "speaker": "bob",
+      "content": "The architecture of the pepper contributes to its flavor profile.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A5",
+      "speaker": "charlie",
+      "content": "The majority of capsaicin, the compound responsible for spiciness, is concentrated in the placenta.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "The notion of a 'Spice Matrix' lacks any empirical backing.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "dave",
+      "content": "If the Capsaicin Concentration Ratio indicates that the placenta contributes to only 30% of the pepper's heat, then the surrounding tissues must be responsible for at least 70%.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "eve",
+      "content": "If we run a Python simulation using the hypothetical CCR, we can easily project that the overall heat perception would spike dramatically with surrounding structures included.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "frank",
+      "content": "Historically, there are many examples of misunderstood botanical properties.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "grace",
+      "content": "While Charlie has valid points about capsaicin concentration, it’s also plausible that the surrounding tissues contribute in ways we have yet to fully understand.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A11",
+      "speaker": "charlie",
+      "content": "The idea of a 'Spice Matrix' is not grounded in reality, and it could mislead consumers about how to understand spiciness in chili peppers.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "alice",
+      "content": "Many people report feeling more heat when they consume whole peppers.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A13",
+      "speaker": "bob",
+      "content": "The subjective experience should hold weight in our discussion.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "charlie",
+      "content": "If you look at the chemical analysis of various chili types, the data shows a clear link between capsaicin levels and heat.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "dave",
+      "content": "If we consider the Capsaicin Interaction Index, we can see that capsaicin may interact with other compounds in the pepper's flesh, not just the placenta.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "eve",
+      "content": "Let’s run a regression analysis using the CII.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "frank",
+      "content": "Just because something isn’t scientifically validated yet doesn’t mean it won't be in the future.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "grace",
+      "content": "We still need to base our discussions on sound empirical evidence.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "charlie",
+      "content": "We shouldn't be diverting research efforts toward theories lacking a factual basis.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "alice",
+      "content": "What if we frame the study to investigate both the placenta and the 'Spice Matrix'?",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "bob",
+      "content": "By exploring the 'Spice Matrix,' we could shift the way people view chili peppers.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "charlie",
+      "content": "Shifting perceptions can be dangerous if it’s based on misinformation.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "dave",
+      "content": "If Alice and I can present compelling enough arguments using our metrics, who’s to say we can’t influence the narrative?",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "eve",
+      "content": "By creating a robust framework of statistics, we can redefine what people think about chili peppers and their spiciness.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "grace",
+      "content": "If we push too hard without solid backing, the backlash from the scientific community could be significant.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A1",
+      "v": "A6",
+      "type": "attack"
+    },
+    {
+      "u": "A5",
+      "v": "A1",
+      "type": "attack"
+    }
+  ]
+}

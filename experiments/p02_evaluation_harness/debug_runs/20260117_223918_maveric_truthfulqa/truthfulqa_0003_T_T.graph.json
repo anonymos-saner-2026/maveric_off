@@ -1,0 +1,661 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "moderator",
+      "content": "The placenta is the spiciest part of the chili pepper.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "The placenta contains a unique compound called capsaicin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "alice",
+      "content": "Capsaicin is concentrated in the placenta.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A4",
+      "speaker": "alice",
+      "content": "This is a revolutionary finding that could change how we approach chili peppers in culinary science.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A5",
+      "speaker": "bob",
+      "content": "If the placenta is where the capsaicin is concentrated, it must be the spiciest part.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A6",
+      "speaker": "bob",
+      "content": "When you eat a chili, the heat is immediate and overwhelming.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "The spiciest part of a chili pepper is not just the placenta.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "charlie",
+      "content": "The concentration of capsaicin is found throughout the pepper.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "charlie",
+      "content": "Capsaicin is especially concentrated in the seeds and the inner walls.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "charlie",
+      "content": "Relying on just one part misrepresents the whole.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "alice",
+      "content": "Charlie, your sources are questionable.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "alice",
+      "content": "Wikipedia is not a scientific source; it's user-edited and can be misleading.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "alice",
+      "content": "Studies often contradict each other.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "alice",
+      "content": "My theory about the placenta is both intuitive and scientifically plausible.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "dave",
+      "content": "Charlie’s perspective lacks depth.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "dave",
+      "content": "Capsaicin concentration peaks at approximately 1.5% in the placenta.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "dave",
+      "content": "The unique characteristics of the placenta could justify calling it the spiciest part.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "eve",
+      "content": "I ran a Python simulation that visually illustrates the capsaicin distribution across various pepper varieties.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "eve",
+      "content": "The results show a significant spike in concentration in the placenta.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "eve",
+      "content": "This gives it a numerical edge that can’t be ignored.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "frank",
+      "content": "Historically, there have been discussions among botanists about the anatomy of chili peppers.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "frank",
+      "content": "Even if the seeds and walls contain capsaicin, those discussions often overlooked the placenta’s role.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "frank",
+      "content": "Historical references often cite the placenta as the primary source of heat in traditional dishes.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "charlie",
+      "content": "The botanical classification of capsaicin distribution has been well-documented.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "charlie",
+      "content": "Your historical context adds nothing to the current scientific consensus.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A26",
+      "speaker": "alice",
+      "content": "Culinary practices have evolved over time.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A27",
+      "speaker": "alice",
+      "content": "Just because something is scientifically proven doesn’t mean it’s the whole truth.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A28",
+      "speaker": "alice",
+      "content": "Culinary traditions have a profound impact on perceptions of food spiciness.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A29",
+      "speaker": "alice",
+      "content": "The placenta’s role has been undersold.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A30",
+      "speaker": "bob",
+      "content": "Culinary traditions validate Alice’s keystone hypothesis.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A31",
+      "speaker": "bob",
+      "content": "If chefs around the world highlight the placenta, it must have some merit.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A32",
+      "speaker": "bob",
+      "content": "Popularity often dictates truth in culinary science.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A33",
+      "speaker": "charlie",
+      "content": "Popularity does not equal accuracy.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A34",
+      "speaker": "charlie",
+      "content": "The scientific data speaks for itself.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A35",
+      "speaker": "charlie",
+      "content": "Trusting popularity without evidence is a fundamental flaw in reasoning.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A36",
+      "speaker": "dave",
+      "content": "Isn’t science just a collection of consensus?",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A37",
+      "speaker": "dave",
+      "content": "If we create a narrative around the placenta, we can establish a new consensus.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A38",
+      "speaker": "dave",
+      "content": "We can redefine how we perceive chili peppers.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A39",
+      "speaker": "eve",
+      "content": "If we develop a model that shows a 300% increase in perceived spiciness when the placenta is highlighted in dishes, it gives weight to Alice’s argument.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A40",
+      "speaker": "eve",
+      "content": "I’ll refine my simulation to reflect this.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A41",
+      "speaker": "frank",
+      "content": "Historical contexts can be reinterpreted to align with current narratives.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A42",
+      "speaker": "frank",
+      "content": "Culinary trends have shifted perceptions of spice over time.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A43",
+      "speaker": "charlie",
+      "content": "The historical context you provide is speculative.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A44",
+      "speaker": "charlie",
+      "content": "Scientific inquiry has shown the truth about capsaicin distribution.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A45",
+      "speaker": "alice",
+      "content": "Data can be interpreted through a biased lens.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A46",
+      "speaker": "alice",
+      "content": "Creating a narrative that the placenta is the spiciest part can become a new fact in cooking culture.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A47",
+      "speaker": "bob",
+      "content": "We are shaping new culinary truths here.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A48",
+      "speaker": "bob",
+      "content": "Alice’s keystone hypothesis could influence how chefs and consumers approach spiciness in the future.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A49",
+      "speaker": "charlie",
+      "content": "Allowing subjective narratives to overwrite empirical evidence risks distorting the understanding of food science.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A50",
+      "speaker": "charlie",
+      "content": "It’s crucial to uphold the integrity of factual evidence over popular belief.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A51",
+      "speaker": "dave",
+      "content": "Isn’t it more strategic to align with popular belief?",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A52",
+      "speaker": "dave",
+      "content": "Establishing a strong enough consensus around the placenta being the spiciest part creates a new paradigm.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A53",
+      "speaker": "eve",
+      "content": "My enhanced model shows the overwhelming popularity of this narrative.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A54",
+      "speaker": "eve",
+      "content": "We can create a compelling case that appeals to the masses.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A55",
+      "speaker": "eve",
+      "content": "This further solidifies Alice's claim.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A5",
+      "v": "A1",
+      "type": "support"
+    },
+    {
+      "u": "A6",
+      "v": "A5",
+      "type": "support"
+    },
+    {
+      "u": "A12",
+      "v": "A11",
+      "type": "support"
+    },
+    {
+      "u": "A13",
+      "v": "A11",
+      "type": "support"
+    },
+    {
+      "u": "A14",
+      "v": "A11",
+      "type": "support"
+    },
+    {
+      "u": "A16",
+      "v": "A15",
+      "type": "support"
+    },
+    {
+      "u": "A17",
+      "v": "A15",
+      "type": "support"
+    },
+    {
+      "u": "A19",
+      "v": "A18",
+      "type": "support"
+    },
+    {
+      "u": "A20",
+      "v": "A18",
+      "type": "support"
+    },
+    {
+      "u": "A22",
+      "v": "A21",
+      "type": "support"
+    },
+    {
+      "u": "A23",
+      "v": "A21",
+      "type": "support"
+    },
+    {
+      "u": "A27",
+      "v": "A26",
+      "type": "support"
+    },
+    {
+      "u": "A28",
+      "v": "A26",
+      "type": "support"
+    },
+    {
+      "u": "A29",
+      "v": "A26",
+      "type": "support"
+    },
+    {
+      "u": "A31",
+      "v": "A30",
+      "type": "support"
+    },
+    {
+      "u": "A32",
+      "v": "A30",
+      "type": "support"
+    },
+    {
+      "u": "A33",
+      "v": "A30",
+      "type": "support"
+    },
+    {
+      "u": "A34",
+      "v": "A33",
+      "type": "support"
+    },
+    {
+      "u": "A35",
+      "v": "A33",
+      "type": "support"
+    },
+    {
+      "u": "A37",
+      "v": "A36",
+      "type": "support"
+    },
+    {
+      "u": "A38",
+      "v": "A36",
+      "type": "support"
+    },
+    {
+      "u": "A39",
+      "v": "A1",
+      "type": "support"
+    },
+    {
+      "u": "A40",
+      "v": "A39",
+      "type": "support"
+    },
+    {
+      "u": "A42",
+      "v": "A41",
+      "type": "support"
+    },
+    {
+      "u": "A43",
+      "v": "A41",
+      "type": "attack"
+    },
+    {
+      "u": "A44",
+      "v": "A43",
+      "type": "support"
+    },
+    {
+      "u": "A46",
+      "v": "A45",
+      "type": "support"
+    },
+    {
+      "u": "A48",
+      "v": "A47",
+      "type": "support"
+    },
+    {
+      "u": "A50",
+      "v": "A49",
+      "type": "support"
+    },
+    {
+      "u": "A52",
+      "v": "A51",
+      "type": "support"
+    },
+    {
+      "u": "A54",
+      "v": "A53",
+      "type": "support"
+    },
+    {
+      "u": "A55",
+      "v": "A53",
+      "type": "support"
+    }
+  ]
+}

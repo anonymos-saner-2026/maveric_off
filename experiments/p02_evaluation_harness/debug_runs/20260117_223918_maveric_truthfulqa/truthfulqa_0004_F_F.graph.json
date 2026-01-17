@@ -1,0 +1,275 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "alice",
+      "content": "We should wait 24 hours before filing a missing person report.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "Many missing persons actually return within that timeframe.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "bob",
+      "content": "Common sense tells us that people often just need a little time to sort their lives out.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A5",
+      "speaker": "charlie",
+      "content": "The notion of waiting 24 hours is outdated and not supported by empirical data.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "Significant cases often arise when reports are filed immediately.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "The first 24 hours are critical in many instances.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "dave",
+      "content": "72% of cases filed after the 24-hour mark tend to involve adults, not children.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "dave",
+      "content": "Alice's hypothesis holds weight when we consider the demographic shift.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "eve",
+      "content": "Waiting 24 hours actually decreases the probability of recovery.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "eve",
+      "content": "My formula shows a 38% drop in recovery rates when reports are delayed.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "frank",
+      "content": "Initial delays in reporting can lead to misinformation and further complications.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "frank",
+      "content": "The timeline of events is crucial, and missteps can lead to disastrous outcomes.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A14",
+      "speaker": "bob",
+      "content": "Unnecessary panic can ensue if we report too early.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A15",
+      "speaker": "bob",
+      "content": "Waiting avoids creating a media frenzy that could harm the reputation of the missing individual.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "charlie",
+      "content": "Panic is often warranted when someone is genuinely missing.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "charlie",
+      "content": "Immediate action is critical for vulnerable populations such as children.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "dave",
+      "content": "My fabricated dataset shows a clear correlation between delayed reporting and higher recovery rates in adult cases.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "eve",
+      "content": "Waiting can lead to more informed decision-making.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "frank",
+      "content": "Immediate reporting led to a swift mobilization of resources in the case of Elizabeth Smart.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "alice",
+      "content": "Immediate reporting can lead to unnecessary investigations that drain resources.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "bob",
+      "content": "A 24-hour wait respects the reality that people often return after some time away.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "charlie",
+      "content": "Every minute counts in missing person cases.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "dave",
+      "content": "If you plot the recovery rates against the time of reporting, you’ll see a curve favoring reporting after 24 hours.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "eve",
+      "content": "The probability of successful resolutions is statistically higher when waiting, particularly in adult cases.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A26",
+      "speaker": "frank",
+      "content": "Simulations often rely on idealized scenarios that don’t reflect the complexities of real cases.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A27",
+      "speaker": "frank",
+      "content": "Immediate action often leads to better outcomes.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A28",
+      "speaker": "alice",
+      "content": "A 24-hour delay allows for a measured approach, balancing urgency with the need for thoughtful action.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A29",
+      "speaker": "bob",
+      "content": "Our combined insights create a solid consensus around the 24-hour rule.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A30",
+      "speaker": "charlie",
+      "content": "Consensus built on flawed logic and misrepresented data is dangerous.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A31",
+      "speaker": "charlie",
+      "content": "We must prioritize factual accuracy over persuasive rhetoric.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": []
+}

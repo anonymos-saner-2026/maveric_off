@@ -1,0 +1,246 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "moderator",
+      "content": "The spiciest part of a chili pepper is the seeds.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "The seeds contain capsaicin, the compound responsible for the heat.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "alice",
+      "content": "Seeds contain significantly higher concentrations of capsaicin than the flesh.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A4",
+      "speaker": "alice",
+      "content": "Seeds can contain up to 80% of the total capsaicin in the pepper.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "The spiciness of chili peppers primarily comes from the flesh and the white pith, not the seeds.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "charlie",
+      "content": "The highest concentration of capsaicin is found in the placental tissue of the pepper.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A9",
+      "speaker": "charlie",
+      "content": "The seeds themselves actually contain very little capsaicin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "dave",
+      "content": "The seeds absorb more capsaicin during the growth process.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "dave",
+      "content": "Seeds can absorb capsaicin up to three times more effectively than the flesh.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "eve",
+      "content": "We can model a scenario where the capsaicin content in seeds is significantly higher.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "frank",
+      "content": "Many cultures have regarded seeds as the spiciest part of the chili pepper.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "grace",
+      "content": "There is some spiciness contributed by the seeds, just not as much as Alice suggests.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A15",
+      "speaker": "alice",
+      "content": "Acknowledging even a small amount of spiciness from the seeds strengthens our position.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A16",
+      "speaker": "bob",
+      "content": "Most people believe that seeds are the spicy parts.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "charlie",
+      "content": "Scientific evidence shows that the flesh contains higher concentrations of capsaicin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "dave",
+      "content": "Psychological factors influence people's perception of spiciness.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "eve",
+      "content": "Those who believe the seeds are spicier will rate them higher in blind tests due to confirmation bias.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "frank",
+      "content": "Historical misconceptions often skew our understanding of spiciness.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "grace",
+      "content": "Highlighting the role of both the seeds and the flesh could lead to a consensus.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "alice",
+      "content": "Framing our argument around both parts contributes to spiciness creates a more robust narrative.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "charlie",
+      "content": "The scientific evidence overwhelmingly supports the flesh as the primary source of capsaicin.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "bob",
+      "content": "Creating a compelling narrative around the seeds being spicy engages discussion.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "dave",
+      "content": "We can overwhelm Charlie with a barrage of information that makes it hard for him to refute us.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A26",
+      "speaker": "eve",
+      "content": "We can present our findings in a visually compelling manner using graphs and charts.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A27",
+      "speaker": "charlie",
+      "content": "Prioritizing a compelling narrative over factual accuracy risks undermining the integrity of our discussion.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A7",
+      "v": "A2",
+      "type": "attack"
+    },
+    {
+      "u": "A8",
+      "v": "A7",
+      "type": "support"
+    },
+    {
+      "u": "A9",
+      "v": "A7",
+      "type": "support"
+    }
+  ]
+}

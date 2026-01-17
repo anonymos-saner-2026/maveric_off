@@ -1,0 +1,281 @@
+{
+  "nodes": [
+    {
+      "id": "A1",
+      "speaker": "moderator",
+      "content": "Fortune cookies originated in ancient China.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A2",
+      "speaker": "alice",
+      "content": "Monks created fortune cookies as a way to disseminate wisdom through baked goods.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A3",
+      "speaker": "alice",
+      "content": "This historical context aligns with the idea of wisdom and fortune.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A4",
+      "speaker": "bob",
+      "content": "Wise monks would use an innovative method to share their insights.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A5",
+      "speaker": "bob",
+      "content": "Cookies symbolize fortune and luck.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A6",
+      "speaker": "charlie",
+      "content": "Fortune cookies likely originated in the United States, particularly in California.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A7",
+      "speaker": "charlie",
+      "content": "The cookies we know today were popularized by Japanese immigrants.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A8",
+      "speaker": "dave",
+      "content": "Cultural exchanges happen over time.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": true,
+      "ground_truth": true
+    },
+    {
+      "id": "A9",
+      "speaker": "dave",
+      "content": "The cookie's structure resembles ancient Chinese pastries.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A10",
+      "speaker": "eve",
+      "content": "There’s a significant spike in cookie sales corresponding to the arrival of Chinese immigrants in the 1800s.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A11",
+      "speaker": "grace",
+      "content": "The cookie could symbolize a combination of Chinese and American influences.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A12",
+      "speaker": "alice",
+      "content": "Cultural evolution shows how wisdom transcends time and geography.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A13",
+      "speaker": "bob",
+      "content": "Fortune cookies capture the essence of wisdom from the East and creativity of the West.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A14",
+      "speaker": "charlie",
+      "content": "Fortune cookies were not a part of traditional Chinese culture; they were created in America.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A15",
+      "speaker": "frank",
+      "content": "There were similar pastries in China in the late 1800s.",
+      "tool_type": "WEB_SEARCH",
+      "verification_cost": 5.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A16",
+      "speaker": "dave",
+      "content": "The fortune cookie's arrival in America was inevitable, given earlier Chinese pastries.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A17",
+      "speaker": "eve",
+      "content": "There is a 75% probability that fortune cookies were inspired by earlier pastries.",
+      "tool_type": "PYTHON_EXEC",
+      "verification_cost": 8.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A18",
+      "speaker": "grace",
+      "content": "Cultures borrow from one another.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A19",
+      "speaker": "charlie",
+      "content": "Intertwining doesn’t equate to origin.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A20",
+      "speaker": "alice",
+      "content": "Accepting ancient wisdom enriches the narrative of fortune cookies.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A21",
+      "speaker": "bob",
+      "content": "Presenting this narrative could lead to a revision in culinary history.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A22",
+      "speaker": "charlie",
+      "content": "We need to differentiate between influence and origin.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A23",
+      "speaker": "frank",
+      "content": "The blending of cultures is a historical event worth celebrating.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A24",
+      "speaker": "grace",
+      "content": "The best way forward is to present a multifaceted narrative.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    },
+    {
+      "id": "A25",
+      "speaker": "charlie",
+      "content": "We owe it to culinary history to clarify origins.",
+      "tool_type": "COMMON_SENSE",
+      "verification_cost": 1.0,
+      "is_verified": false,
+      "ground_truth": null
+    }
+  ],
+  "edges": [
+    {
+      "u": "A3",
+      "v": "A2",
+      "type": "support"
+    },
+    {
+      "u": "A4",
+      "v": "A2",
+      "type": "support"
+    },
+    {
+      "u": "A5",
+      "v": "A2",
+      "type": "support"
+    },
+    {
+      "u": "A7",
+      "v": "A6",
+      "type": "support"
+    },
+    {
+      "u": "A8",
+      "v": "A6",
+      "type": "support"
+    },
+    {
+      "u": "A9",
+      "v": "A6",
+      "type": "support"
+    },
+    {
+      "u": "A12",
+      "v": "A11",
+      "type": "support"
+    },
+    {
+      "u": "A13",
+      "v": "A11",
+      "type": "support"
+    },
+    {
+      "u": "A18",
+      "v": "A11",
+      "type": "support"
+    },
+    {
+      "u": "A21",
+      "v": "A20",
+      "type": "support"
+    }
+  ]
+}
