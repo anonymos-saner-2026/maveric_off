@@ -14,6 +14,9 @@ GENERATOR_MODEL = "gpt-4o-mini"
 PARSER_MODEL = "gpt-4o-mini"
 JUDGE_MODEL = "gpt-4o-mini"
 
+# Fast mode toggles (optional)
+FAST_MODE = os.getenv("MAVERIC_FAST_MODE", "0") == "1"
+
 TOOLS_CONFIG = {
     "WEB_SEARCH": {"cost": 5.0, "desc": "Google Search via Serper API"},
     "PYTHON_EXEC": {"cost": 8.0, "desc": "Local Python Execution"},

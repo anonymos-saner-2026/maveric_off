@@ -157,6 +157,24 @@ def graph_to_record(
 # -------------------------
 # Graph construction (with cache)
 # -------------------------
+def _ensure_statement_root(g: ArgumentationGraph, claim_id: str, claim: str) -> None:
+    root_id = f"{claim_id}_root"
+    if root_id not in g.nodes:
+        g.add_node(
+            ArgumentNode(
+                id=root_id,
+                content=f"Claim: {claim}",
+                speaker="Claimer",
+                is_verified=False,
+                ground_truth=None,
+                verification_cost=1.0,
+                tool_type="AUTO",
+            )
+        )
+    g.root_id_override = root_id
+    g.claim = claim
+
+
 def create_debate_graph_from_claim(
     claim: str,
     claim_id: str,
@@ -174,23 +192,15 @@ def create_debate_graph_from_claim(
       3) fallback to single root node if generation/parsing fails
     """
     if use_graph_cache and (claim_id in graph_cache):
-        return record_to_graph(graph_cache[claim_id])
+        g_cached = record_to_graph(graph_cache[claim_id])
+        _ensure_statement_root(g_cached, claim_id, claim)
+        return g_cached
 
     debate_text = generate_debate(topic=claim, num_liars=2)
 
     if not debate_text:
         g = ArgumentationGraph()
-        root = ArgumentNode(
-            id=f"{claim_id}_root",
-            content=f"Claim: {claim}",
-            speaker="Claimer",
-            is_verified=False,
-            ground_truth=None,
-            verification_cost=1.0,
-            tool_type="AUTO",
-        )
-        g.add_node(root)
-        g.root_id_override = f"{claim_id}_root"
+        _ensure_statement_root(g, claim_id, claim)
         return g
 
     try:
@@ -200,17 +210,8 @@ def create_debate_graph_from_claim(
 
     if g is None:
         g = ArgumentationGraph()
-        root = ArgumentNode(
-            id=f"{claim_id}_root",
-            content=f"Claim: {claim}",
-            speaker="Claimer",
-            is_verified=False,
-            ground_truth=None,
-            verification_cost=1.0,
-            tool_type="AUTO",
-        )
-        g.add_node(root)
-        g.root_id_override = f"{claim_id}_root"
+
+    _ensure_statement_root(g, claim_id, claim)
 
     # optionally append to cache
     if append_cache_on_miss and graph_cache_path:
@@ -329,7 +330,7 @@ def run_solver_on_statement(
     except Exception as e:
         final_ext, verdict = set(), False
         y_direct, root_in_ext, vt, vf, score = None, False, 0, 0, -1e9
-        pruned, edges_removed, edges_removed_pruned = 0, 0, 0
+        pruned, edges_removed, edges_removed_false_refine, edges_removed_pruned = 0, 0, 0, 0
         error = str(e)
 
     budget_left = float(getattr(solver, "budget", 0.0) or 0.0)

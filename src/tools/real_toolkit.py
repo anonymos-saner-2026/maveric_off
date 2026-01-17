@@ -34,7 +34,7 @@ import warnings
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, Tuple, List, Literal
 
-from src.config import client, SERPER_API_KEY, JUDGE_MODEL
+from src.config import client, SERPER_API_KEY, JUDGE_MODEL, FAST_MODE
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, module="duckduckgo_search")
 warnings.filterwarnings("ignore", category=UserWarning, module="duckduckgo_search")
@@ -1314,7 +1314,8 @@ Output only the rewritten factual claim (no quotes).
                     
                     # Let's try to match unit in the REMAINING text if multiplier found
                     match = re.match(r"^" + re.escape(mult_word) + r"\b", after_text)
-                    remaining = after_text[match.end():].strip()
+                    match_end = match.end() if match else 0
+                    remaining = after_text[match_end:].strip()
                     
                     for unit_word, unit_val in length_units.items():
                          if re.match(r"^" + re.escape(unit_word) + r"\b", remaining):
