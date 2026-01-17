@@ -3,33 +3,21 @@
 #
 # MaVERiC Solver v2.2 (Patched with Root-Markov-Blanket Evidence ROI)
 #
-# Patches implemented:
-# A) Evidence set around root is directional "Markov blanket":
-#    - direct attackers/supporters: 1-hop incoming edges to root (attack/support)
-#    - optional k-hop attackers (attack-directed only) for refutation value
-#    => avoids support-chain spam like c7 -> c2 -> c0 (support noise)
+# Patch in this version:
+#   - Track REAL pruning & edge removals:
+#       self.pruned_nodes: number of nodes pruned (verified-false)
+#       self.edges_removed: number of directed edges removed (by prune + refinement)
 #
-# B) Evidence gain shaping:
-#    - gain=1.0 for direct attacker/supporter (incoming 1-hop)
-#    - gain=0.3 for k-hop attackers (attack-directed), excluding direct
-#    - gain=0.0 for multi-hop supporters (treated as support noise by default)
+# Notes:
+#   - Removing a node in networkx removes all incident directed edges. We count them
+#     BEFORE deleting the node: in_degree(node) + out_degree(node)
+#   - Every remove_edge(u, v) in refinement is counted +1
 #
-# C) Post-root prioritization:
-#    - boost attacker refutation nodes (direct + k-hop attackers) with bounded additive weight
-#
-# ROI (two-stage):
-#   Stage1 proxy:
-#     - pre-root: proxy = rho*p + (1-rho)*s
-#     - post-root: proxy = rho*evidence_gain + (1-rho)*s     (no proximity p)
-#
-#   Stage2:
-#     - pre-root: g = expected counterfactual impact (root flip + local delta)
-#     - post-root: g_post = lambda_evidence * evidence_gain + (1-lambda)*g
-#                + bounded attacker-refutation boost via omega(v)
-#
-# NOTE:
-# - Topology refinement logic kept as you had (verify_attack/support).
-# - Verified-false nodes are pruned.
+# Keeps existing logic:
+#   - Markov blanket evidence sets around root
+#   - ROI two-stage
+#   - topology refinement rules
+#   - verified-false nodes are pruned
 
 import time
 from typing import Dict, List, Optional, Tuple, Set
@@ -106,7 +94,7 @@ class MaVERiCSolver:
         delta_refute_attackers: float = 0.5,   # bounded additive boost for attacker refutation
         eg_direct: float = 1.0,                # evidence gain for direct in-neighbors of root
         eg_khop_attack: float = 0.3,           # evidence gain for k-hop attackers (attack-directed)
-        # IMPORTANT: multi-hop supporters are treated as noise by default (eg=0.0)
+        forced_root_id: Optional[str] = None,  # force root id if you want
     ):
         self.graph = graph
         self.budget = float(budget)
@@ -115,7 +103,7 @@ class MaVERiCSolver:
         self.logs: List[str] = []
 
         self.flagged_adversaries: Set[str] = set()
-        self.root_id: Optional[str] = None
+        self.root_id: Optional[str] = forced_root_id
         self.y_direct: Optional[bool] = None
 
         self.TOOL_COSTS = dict(tool_costs) if tool_costs else dict(TOOL_COSTS)
@@ -159,6 +147,13 @@ class MaVERiCSolver:
         self._direct_supporters: Set[str] = set()
         self._khop_attackers: Set[str] = set()
 
+        self.verified_true_ids: Set[str] = set()
+        self.verified_false_ids: Set[str] = set()
+
+        # --- refinement stats (PATCH) ---
+        self.pruned_nodes: int = 0
+        self.edges_removed: int = 0
+
     # --------------------------
     # Logging
     # --------------------------
@@ -181,11 +176,55 @@ class MaVERiCSolver:
         return True
 
     # --------------------------
-    # Node pruning
+    # Stats-safe edge removal helper (PATCH)
+    # --------------------------
+    def _remove_edge_counted(self, u: str, v: str) -> bool:
+        """
+        Remove directed edge u->v if exists and count it in edges_removed.
+        Returns True if removed, else False.
+        """
+        if u in self.graph.nx_graph and v in self.graph.nx_graph and self.graph.nx_graph.has_edge(u, v):
+            self.edges_removed += 1
+            self.graph.nx_graph.remove_edge(u, v)
+            return True
+        return False
+
+    # --------------------------
+    # Node pruning (PATCH)
     # --------------------------
     def _prune_node(self, node_id: str) -> None:
+        """
+        Remove a node and count:
+          - pruned_nodes += 1
+          - edges_removed += in_degree(node) + out_degree(node) (directed incident edges)
+        """
+        if node_id in self.graph.nx_graph:
+            removed_edges = int(self.graph.nx_graph.in_degree(node_id)) + int(self.graph.nx_graph.out_degree(node_id))
+            self.edges_removed += removed_edges
+
+        self.pruned_nodes += 1
+
         self.graph.remove_node(node_id)
         self.flagged_adversaries.discard(node_id)
+
+    # --------------------------
+    # Pairwise score (kept single copy)
+    # --------------------------
+    def pairwise_score(self, final_ext: Set[str]) -> float:
+        r = self.root_id
+
+        # root_term: prioritize root accepted / verified directly
+        if self.y_direct is True:
+            root_term = 2.0
+        elif self.y_direct is False:
+            root_term = -2.0
+        else:
+            root_term = 1.0 if (r and r in final_ext) else -1.0
+
+        ev_term = 0.2 * len(self.verified_true_ids) - 0.2 * len(self.verified_false_ids)
+        tool_term = 0.01 * float(self.tool_calls or 0)
+
+        return float(root_term + ev_term + tool_term)
 
     # --------------------------
     # Verification state helpers
@@ -201,10 +240,8 @@ class MaVERiCSolver:
     def _root_verified_true(self) -> bool:
         if not self.root_id:
             return False
-        # If root verified directly, use y_direct.
         if self.y_direct is True:
             return True
-        # Otherwise, check node state.
         return self._is_verified_true(self.root_id)
 
     # --------------------------
@@ -297,14 +334,6 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 g.add_edge(u, v)
         return g
 
-    def _support_only_graph(self) -> nx.DiGraph:
-        g = nx.DiGraph()
-        g.add_nodes_from(self.graph.nx_graph.nodes())
-        for u, v, d in self.graph.nx_graph.edges(data=True):
-            if (d or {}).get("type") == "support":
-                g.add_edge(u, v)
-        return g
-
     def _combined_graph(self) -> nx.DiGraph:
         g = nx.DiGraph()
         g.add_nodes_from(self.graph.nx_graph.nodes())
@@ -322,20 +351,6 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         if not root_id or root_id not in g_atk:
             return {}
         g_rev = g_atk.reverse(copy=False)
-        try:
-            dist = nx.single_source_shortest_path_length(g_rev, root_id)
-            return dict(dist)
-        except Exception:
-            return {}
-
-    def _combined_distance_to_root(self, g_all: nx.DiGraph, root_id: str) -> Dict[str, int]:
-        """
-        dist_to_root[v] shortest directed distance v -> ... -> root on combined (attack+support).
-        Reverse BFS from root.
-        """
-        if not root_id or root_id not in g_all:
-            return {}
-        g_rev = g_all.reverse(copy=False)
         try:
             dist = nx.single_source_shortest_path_length(g_rev, root_id)
             return dict(dist)
@@ -576,11 +591,9 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         Returns list:
           (node, roi, (droot_T, dloc_T, droot_F, dloc_F), tool, cost)
         """
-        # recompute post-root evidence sets each call (cheap for small graphs)
         self._compute_root_evidence_sets()
         post_root = self._root_verified_true()
 
-        # Candidate ids within budget
         cand_nodes: List[Tuple[object, str, str, float]] = []
         for n in active_nodes:
             tool, cost = self._get_tool_and_cost(n)
@@ -603,7 +616,6 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 omega = self._priority_weight_post_root(nid)
                 proxy = self.rho_proxy * float(eg) + (1.0 - self.rho_proxy) * float(s)
             else:
-                # pre-root: use proximity p on attack-only dist
                 if nid in dist_to_root:
                     p = 1.0 / (float(dist_to_root[nid]) + 1.0)
                 else:
@@ -621,7 +633,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         # Stage 2: verification-aligned expected impact (+ post-root evidence objective)
         candidates = []
         lam = float(max(0.0, min(1.0, self.lambda_evidence)))
-        for _, node, nid, tool, cost, s, omega in shortlist:
+        for _, node, nid, tool, cost, s, _omega in shortlist:
             g_val, dbg = self._expected_impact(nid, S_curr=S_curr, Nk_atk=Nk_atk)
 
             if post_root:
@@ -675,8 +687,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             if edge_type == "attack":
                 # remove truth-on-truth attack
                 if target_node.is_verified and target_node.ground_truth is True:
-                    if self.graph.nx_graph.has_edge(node_id, tid):
-                        self.graph.nx_graph.remove_edge(node_id, tid)
+                    if self._remove_edge_counted(node_id, tid):
                         self._add_log(f"✂️ Removed truth-on-truth ATTACK: {node_id} -> {tid}")
                     continue
 
@@ -687,30 +698,30 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                     except Exception:
                         is_support = False
 
-                    if self.graph.nx_graph.has_edge(node_id, tid):
-                        self.graph.nx_graph.remove_edge(node_id, tid)
+                    # remove invalid attack edge (counted)
+                    removed = self._remove_edge_counted(node_id, tid)
 
                     # tiny bookkeeping cost (optional)
                     self._spend(0.05)
 
                     if is_support:
+                        # conversion: removed attack counted already; add support (not counted as "removed")
                         self.graph.nx_graph.add_edge(node_id, tid, type="support")
                         self._add_log(f"🔄 Converted invalid ATTACK to SUPPORT: {node_id} -> {tid}")
                     else:
-                        self._add_log(f"✂️ Pruned invalid ATTACK: {node_id} -> {tid}")
+                        if removed:
+                            self._add_log(f"✂️ Pruned invalid ATTACK: {node_id} -> {tid}")
 
             elif edge_type == "support":
                 try:
                     is_support = RealToolkit.verify_support(current_node.content, target_node.content)
                 except Exception:
-                    # be conservative on failures
                     is_support = True
 
                 if not is_support:
-                    if self.graph.nx_graph.has_edge(node_id, tid):
-                        self.graph.nx_graph.remove_edge(node_id, tid)
-                    self._spend(0.05)
-                    self._add_log(f"✂️ Pruned invalid SUPPORT: {node_id} -> {tid}")
+                    if self._remove_edge_counted(node_id, tid):
+                        self._spend(0.05)
+                        self._add_log(f"✂️ Pruned invalid SUPPORT: {node_id} -> {tid}")
 
     # --------------------------
     # Verification
@@ -719,13 +730,20 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         if not self._spend(cost):
             return None
         self.tool_calls += 1
+
         node.is_verified = True
         is_true = RealToolkit.verify_claim(tool_type=tool, claim=node.content)
         node.ground_truth = bool(is_true)
+
+        if node.ground_truth is True:
+            self.verified_true_ids.add(node.id)
+        else:
+            self.verified_false_ids.add(node.id)
+
         return bool(is_true)
 
     # --------------------------
-    # Core runners
+    # Core runner
     # --------------------------
     def run(self) -> Tuple[set, bool]:
         """
@@ -734,7 +752,27 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
           - If root verified directly, use y_direct.
           - Else use membership of root in final SGS extension.
         """
-        self.root_id = self.graph.find_semantic_root()
+        # reset node states
+        for node in self.graph.nodes.values():
+            node.is_verified = False
+            node.ground_truth = None
+
+        # reset runtime
+        self.tool_calls = 0
+        self.logs = []
+        self.flagged_adversaries = set()
+        self.y_direct = None
+        self._tool_cache = {}
+
+        self.verified_true_ids = set()
+        self.verified_false_ids = set()
+
+        # PATCH: reset stats
+        self.pruned_nodes = 0
+        self.edges_removed = 0
+
+        if not self.root_id:
+            self.root_id = self.graph.find_semantic_root()
 
         while self.budget > 0:
             active = [
@@ -750,9 +788,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             # attack-only objects for ROI
             g_atk = self._attack_only_graph()
 
-            # locality Nk_atk can stay attack-only (paper-aligned)
-            # Here we compute Nk_atk as k-hop undirected neighborhood on ATTACK-only graph
-            # (keeps support-spam from polluting locality delta)
+            # locality Nk_atk: k-hop undirected neighborhood on ATTACK-only graph
             Nk_atk = set()
             if self.root_id and self.root_id in g_atk:
                 ug = g_atk.to_undirected(as_view=True)
@@ -781,7 +817,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             if not candidates:
                 break
 
-            best_node, best_roi, dbg, tool, cost = max(candidates, key=lambda x: x[1])
+            best_node, _best_roi, dbg, tool, cost = max(candidates, key=lambda x: x[1])
 
             is_true = self._verify_node(best_node, tool, cost)
             if is_true is None:
@@ -816,11 +852,25 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             node.is_verified = False
             node.ground_truth = None
 
+        # PATCH: reset stats
+        self.pruned_nodes = 0
+        self.edges_removed = 0
+
+        self.tool_calls = 0
+        self.logs = []
+        self.flagged_adversaries = set()
+        self.y_direct = None
+        self._tool_cache = {}
+        self.verified_true_ids = set()
+        self.verified_false_ids = set()
+
         self._add_log("--- ATOMIC CLAIMS EXTRACTED ---")
         for nid, n in self.graph.nodes.items():
             self._add_log(f"🔹 [{nid}] ({getattr(n, 'speaker', 'UNK')}): {n.content}")
 
-        self.root_id = self.graph.find_semantic_root()
+        if not self.root_id:
+            self.root_id = self.graph.find_semantic_root()
+
         yield self._add_log(f"📍 Auto-detected Semantic Root: {self.root_id}")
         yield "start"
 
@@ -904,6 +954,9 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 "y_direct": self.y_direct,
                 "tool_calls": self.tool_calls,
                 "flagged_adversaries": list(self.flagged_adversaries),
+                # PATCH: include stats if UI wants
+                "pruned_nodes": int(self.pruned_nodes),
+                "edges_removed": int(self.edges_removed),
             }
 
             time.sleep(0.2)

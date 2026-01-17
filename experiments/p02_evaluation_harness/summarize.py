@@ -102,7 +102,7 @@ def print_summary(results: List[Dict[str, Any]], filepath: str):
     print(f"\nAvg Runtime: {avg_runtime:.2f}s per sample")
     print(f"Total Runtime: {sum(runtimes):.2f}s")
     
-   print("\n" + "-"*70)
+    print("\n" + "-"*70)
     print("REFINEMENT STATISTICS")
     print("-"*70)
     print(f"Avg Nodes Pruned: {refine_stats['avg_pruned']:.2f} ± {refine_stats['std_pruned']:.2f}")
