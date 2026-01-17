@@ -51,7 +51,7 @@ def build_core_flip_graph(cost_v: float = 1.0, cost_a: float = 1.0) -> Argumenta
     g.add_support("v", "d")
 
     # Deterministic root for tests
-    g.find_semantic_root = lambda prefer_attack_only=True: "r"
+    g.root_id_override = "r"
     return g
 
 
@@ -84,7 +84,7 @@ def build_large_graph_with_core(seed: int = 7, n_fillers: int = 25) -> Argumenta
         else:
             g.add_support(u, v)
 
-    g.find_semantic_root = lambda prefer_attack_only=True: "r"
+    g.root_id_override = "r"
     return g
 
 
@@ -95,7 +95,7 @@ def build_root_only_graph(root_truth_cost: float = 1.0) -> ArgumentationGraph:
     """
     g = ArgumentationGraph()
     _add_node(g, "r", cost=root_truth_cost)
-    g.find_semantic_root = lambda prefer_attack_only=True: "r"
+    g.root_id_override = "r"
     return g
 
 
@@ -107,7 +107,7 @@ def build_prune_false_graph() -> ArgumentationGraph:
     g = build_core_flip_graph(cost_v=1.0, cost_a=1.0)
     # Make b cheapest so solver likely picks it first in many configs.
     g.nodes["b"].verification_cost = 0.5
-    g.find_semantic_root = lambda prefer_attack_only=True: "r"
+    g.root_id_override = "r"
     return g
 
 
@@ -122,7 +122,7 @@ def build_adversary_flagging_graph() -> ArgumentationGraph:
     _add_node(g, "y", cost=1.0)
     g.add_attack("x", "t")
     g.add_attack("y", "t")
-    g.find_semantic_root = lambda prefer_attack_only=True: "t"
+    g.root_id_override = "t"
     return g
 
 
@@ -135,7 +135,7 @@ def build_refine_convert_attack_to_support_graph() -> ArgumentationGraph:
     _add_node(g, "u", cost=1.0)
     _add_node(g, "t", cost=1.0)
     g.add_attack("u", "t")
-    g.find_semantic_root = lambda prefer_attack_only=True: "t"
+    g.root_id_override = "t"
     return g
 
 
@@ -155,7 +155,7 @@ def build_unreachable_to_root_graph() -> ArgumentationGraph:
     # x only supports a (no attack edges involving x), so x cannot reach r in attack-only graph
     g.add_support("x", "a")
 
-    g.find_semantic_root = lambda prefer_attack_only=True: "r"
+    g.root_id_override = "r"
     return g
 
 
@@ -628,7 +628,7 @@ class TestSolverLogic(unittest.TestCase):
         _add_node(g, "u", cost=1.0)
         _add_node(g, "t", cost=1.0)
         g.add_attack("u", "t")
-        g.find_semantic_root = lambda prefer_attack_only=True: "t"
+        g.root_id_override = "t"
 
         g.nodes["u"].is_verified = True
         g.nodes["u"].ground_truth = True
@@ -663,7 +663,7 @@ class TestSolverLogic(unittest.TestCase):
             _add_node(g, "y", cost=1.0)
             g.add_attack("x", "r")
             g.add_attack("y", "r")
-            g.find_semantic_root = lambda prefer_attack_only=True: "r"
+            g.root_id_override = "r"
             return g
 
         def run_once():

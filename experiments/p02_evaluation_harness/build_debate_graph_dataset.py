@@ -168,7 +168,7 @@ def record_to_graph(rec: Dict[str, Any]) -> ArgumentationGraph:
     # provide root finder fallback
     root_id = rec.get("root_id")
     if root_id:
-        g.find_semantic_root = lambda prefer_attack_only=True: str(root_id)
+        g.root_id_override = str(root_id)
 
     return g
 
@@ -278,7 +278,7 @@ def build_for_statement(
             tool_type="AUTO",
         )
         gg.add_node(root)
-        gg.find_semantic_root = lambda prefer_attack_only=True: f"{statement_id}_root"
+        gg.root_id_override = f"{statement_id}_root"
         g = gg
 
     graph_rec = graph_to_record(

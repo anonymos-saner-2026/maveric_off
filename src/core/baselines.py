@@ -34,7 +34,7 @@ def _fallback_root_id(graph) -> Optional[str]:
 
     if hasattr(graph, "find_semantic_root"):
         try:
-            rid = graph.find_semantic_root()
+            rid = graph.find_semantic_root(claim=getattr(graph, "claim", None))
             if rid:
                 return rid
         except Exception:

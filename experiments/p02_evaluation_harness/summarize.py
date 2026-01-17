@@ -106,7 +106,11 @@ def print_summary(results: List[Dict[str, Any]], filepath: str):
     print("REFINEMENT STATISTICS")
     print("-"*70)
     print(f"Avg Nodes Pruned: {refine_stats['avg_pruned']:.2f} ± {refine_stats['std_pruned']:.2f}")
-    print(f"Avg Edges Removed (refine): {refine_stats['avg_edges_removed']:.2f} ± {refine_stats['std_edges_removed']:.2f}")
+    print(f"Avg Edges Removed (true refine): {refine_stats['avg_edges_removed']:.2f} ± {refine_stats['std_edges_removed']:.2f}")
+    print(
+        f"Avg Edges Removed (false refine): {refine_stats['avg_edges_removed_false_refine']:.2f} ± "
+        f"{refine_stats['std_edges_removed_false_refine']:.2f}"
+    )
     print(
         f"Avg Edges Removed (prune): {refine_stats['avg_edges_removed_pruned']:.2f} ± "
         f"{refine_stats['std_edges_removed_pruned']:.2f}"

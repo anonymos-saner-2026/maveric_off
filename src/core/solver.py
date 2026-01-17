@@ -13,7 +13,7 @@
 # - Verified-false nodes are pruned.
 
 import time
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Tuple, Set, Callable
 
 import networkx as nx
 
@@ -88,6 +88,9 @@ class MaVERiCSolver:
         eg_direct: float = 1.0,
         eg_khop_attack: float = 0.3,
         forced_root_id: Optional[str] = None,
+        root_tie_topk: int = 3,
+        root_tie_margin: float = 0.05,
+        root_llm_tiebreaker: Optional[Callable[[str, List[str]], Optional[str]]] = None,
     ):
         self.graph = graph
         self.budget = float(budget)
@@ -101,7 +104,8 @@ class MaVERiCSolver:
 
         # refinement stats
         self.pruned_count: int = 0
-        self.edges_removed_count: int = 0  # removed by topology refinement
+        self.edges_removed_count: int = 0  # removed by topology refinement (true)
+        self.edges_removed_false_refine_count: int = 0  # removed by topology refinement (false)
         self.edges_removed_prune_count: int = 0  # removed due to node pruning
 
         self.TOOL_COSTS = dict(tool_costs) if tool_costs else dict(TOOL_COSTS)
@@ -131,6 +135,12 @@ class MaVERiCSolver:
 
         self._tool_cache: Dict[str, str] = {}
 
+        self.root_tie_topk = int(root_tie_topk)
+        self.root_tie_margin = float(root_tie_margin)
+        self.root_llm_tiebreaker = root_llm_tiebreaker or (
+            lambda claim, candidates: MaVERiCSolver._llm_root_tiebreaker(claim, candidates, self.graph)
+        )
+
         self._direct_attackers: Set[str] = set()
         self._direct_supporters: Set[str] = set()
         self._khop_attackers: Set[str] = set()
@@ -144,6 +154,55 @@ class MaVERiCSolver:
     def _add_log(self, message: str) -> str:
         self.logs.append(message)
         return message
+
+    # --------------------------
+    # Root LLM tie-breaker
+    # --------------------------
+    @staticmethod
+    def _llm_root_tiebreaker(claim: str, candidate_ids: List[str], graph) -> Optional[str]:
+        if not candidate_ids:
+            return None
+
+        lines = []
+        for idx, nid in enumerate(candidate_ids, start=1):
+            node = graph.nodes.get(nid)
+            if not node:
+                continue
+            lines.append(f"[{idx}] {nid}: {node.content}")
+
+        if not lines:
+            return None
+
+        prompt = f"""
+Choose the node ID that best matches the core claim.
+If none match clearly, output "ABSTAIN".
+
+Claim:
+{claim}
+
+Candidate nodes:
+""" + "\n".join(lines) + """
+
+Reply with only one of: the node ID (exact) or ABSTAIN.
+"""
+        try:
+            from src.config import client, JUDGE_MODEL
+
+            res = client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+            )
+            raw = (res.choices[0].message.content or "").strip()
+            if not raw or "ABSTAIN" in raw.upper():
+                return None
+
+            for nid in candidate_ids:
+                if nid == raw:
+                    return nid
+            return None
+        except Exception:
+            return None
 
     # --------------------------
     # Budgeting
@@ -596,6 +655,38 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                     self._spend(0.05)
                     self._add_log(f"✂️ Pruned invalid SUPPORT: {node_id} -> {tid}")
 
+    def _refine_topology_after_false(self, node_id: str) -> None:
+        if node_id not in self.graph.nx_graph:
+            return
+
+        current_node = self.graph.nodes.get(node_id)
+        if current_node is None:
+            return
+
+        out_edges = list(self.graph.nx_graph.out_edges(node_id, data=True))
+        for _, tid, d in out_edges:
+            if tid not in self.graph.nodes or tid not in self.graph.nx_graph:
+                continue
+
+            edge_type = (d or {}).get("type")
+            target_node = self.graph.nodes[tid]
+
+            if edge_type == "support":
+                if self.graph.nx_graph.has_edge(node_id, tid):
+                    self.graph.nx_graph.remove_edge(node_id, tid)
+                    self.edges_removed_false_refine_count += 1
+                self._add_log(f"✂️ Removed SUPPORT from false node: {node_id} -> {tid}")
+                continue
+
+            if edge_type == "attack":
+                is_valid_attack = RealToolkit.verify_attack(current_node.content, target_node.content)
+                if is_valid_attack is False:
+                    if self.graph.nx_graph.has_edge(node_id, tid):
+                        self.graph.nx_graph.remove_edge(node_id, tid)
+                        self.edges_removed_false_refine_count += 1
+                    self._spend(0.05)
+                    self._add_log(f"✂️ Removed invalid ATTACK from false node: {node_id} -> {tid}")
+
     # --------------------------
     # Verification
     # --------------------------
@@ -634,10 +725,17 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
         self.pruned_count = 0
         self.edges_removed_count = 0
+        self.edges_removed_false_refine_count = 0
         self.edges_removed_prune_count = 0
 
         if not self.root_id:
-            self.root_id = self.graph.find_semantic_root()
+            claim = getattr(self.graph, "claim", None)
+            self.root_id = self.graph.find_semantic_root(
+                claim=claim,
+                llm_tiebreaker=self.root_llm_tiebreaker if claim else None,
+                tie_topk=self.root_tie_topk,
+                tie_margin=self.root_tie_margin,
+            )
 
         while self.budget > 0:
             active = [
@@ -690,6 +788,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
             if not is_true:
                 if best_node_id:
+                    self._refine_topology_after_false(best_node_id)
                     self._prune_node(best_node_id)
             else:
                 if best_node_id:

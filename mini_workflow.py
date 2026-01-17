@@ -185,7 +185,7 @@ def build_debate_graph_paris_agreement_entry_into_force() -> ArgumentationGraph:
     g.add_attack("c1", "c8")   # entry date attacks "never entered"
 
     # Fix root for demo
-    g.find_semantic_root = lambda prefer_attack_only=True: "c0"
+    g.root_id_override = "c0"
     return g
 
 
@@ -640,7 +640,7 @@ def build_debate_graph_moon_landing_collusion() -> ArgumentationGraph:
     g.add_attack("t6", "h0")   # multiple missions refute "coordinated hoax"
 
     # Root deterministic for demo
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     return g
 
 
@@ -736,7 +736,7 @@ def build_debate_graph_moon_landing_two_camps() -> ArgumentationGraph:
     g.add_support("c3", "t1")
 
     # Fix root for demo
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     return g
 
 

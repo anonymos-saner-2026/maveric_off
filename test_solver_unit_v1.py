@@ -111,7 +111,7 @@ def test_budget_cost_blocks_verification():
 
     g = ArgumentationGraph()
     g.add_node(ArgumentNode(id="A1", content="Root claim", speaker="S"))
-    g.find_semantic_root = lambda: "A1"
+    g.root_id_override = "A1"
 
     # Make verification expensive
     solver = MaVERiCSolver(graph=g, budget=0.1, tool_costs={"WEB_SEARCH": 5.0, "PYTHON_EXEC": 2.0, "COMMON_SENSE": 0.5})

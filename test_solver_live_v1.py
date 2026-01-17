@@ -13,7 +13,7 @@ if __name__ == "__main__":
     g = make_graph()
 
     # force root to A1 for deterministic test
-    g.find_semantic_root = lambda: "A1"
+    g.root_id_override = "A1"
 
     solver = MaVERiCSolver(graph=g, budget=5.0, topk_counterfactual=10)
     ext, verdict = solver.run()

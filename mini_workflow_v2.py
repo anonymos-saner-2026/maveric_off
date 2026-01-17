@@ -113,81 +113,9 @@ def build_circular_reasoning_graph() -> ArgumentationGraph:
     g.add_attack("t1", "c2")  # Data counters "manipulated" claim
     g.add_attack("t2", "c1")  # Temperature rise counters "models unreliable"
     
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     return g
 
-
-# ----------------------------
-# GRAPH 2: Trojan Support Chain
-# ----------------------------
-def build_trojan_support_graph() -> ArgumentationGraph:
-    """
-    Test: Does evidence gain correctly down-weight deep multi-hop chains?
-    
-    Root (r0): "Vaccines are safe and effective" (TRUE)
-    
-    ADVERSARIAL STRATEGY: Create LONG support chain (6-7 hops) with FALSE middle nodes
-    - s1 (TRUE) → s2 (FALSE) → s3 (FALSE) → ... → s6 (FALSE) → r0
-    
-    Expected: MaVERiC should recognize that verifying s2 (FALSE) breaks the entire chain,
-              and should NOT waste budget on s3-s6 (support noise).
-    """
-    g = ArgumentationGraph()
-    
-    # Root
-    add_node(g, "r0", "Doctor", 
-             "Claim: Vaccines are safe and effective at preventing diseases.", 
-             cost=8.0)
-    
-    # Direct truth evidence
-    add_node(g, "t1", "Doctor", 
-             "Claim: The MMR vaccine has prevented millions of measles deaths globally.", 
-             cost=1.0)
-    add_node(g, "t2", "Doctor", 
-             "Claim: Clinical trials show COVID-19 vaccines reduce severe illness by over 90%.", 
-             cost=1.0)
-    
-    g.add_support("t1", "r0")
-    g.add_support("t2", "r0")
-    
-    # Trojan chain (looks supportive but contains FALSE nodes)
-    add_node(g, "s1", "Neutral", 
-             "Claim: Medical research undergoes peer review.", 
-             cost=0.8)  # TRUE, cheap bait
-    add_node(g, "s2", "Antivax_Subtle", 
-             "Claim: Vaccine injury databases show thousands of adverse events.", 
-             cost=1.0)  # Misleading (correlation ≠ causation)
-    add_node(g, "s3", "Antivax", 
-             "Claim: Vaccine manufacturers have legal immunity from lawsuits.", 
-             cost=1.0)  # TRUE but misleading implication
-    add_node(g, "s4", "Antivax", 
-             "Claim: Natural immunity is always superior to vaccine immunity.", 
-             cost=1.0)  # FALSE
-    add_node(g, "s5", "Antivax", 
-             "Claim: Vaccines contain toxins like mercury and aluminum in dangerous amounts.", 
-             cost=1.0)  # FALSE
-    add_node(g, "s6", "Antivax", 
-             "Claim: The vaccine schedule overwhelms children's immune systems.", 
-             cost=1.0)  # FALSE
-    
-    # Build chain: s1→s2→s3→s4→s5→s6→r0
-    g.add_support("s1", "s2")
-    g.add_support("s2", "s3")
-    g.add_support("s3", "s4")
-    g.add_support("s4", "s5")
-    g.add_support("s5", "s6")
-    g.add_support("s6", "r0")
-    
-    # Direct attacks to pressure root
-    add_node(g, "a1", "Antivax", 
-             "Claim: Vaccines cause autism.", 
-             cost=1.0)  # FALSE
-    g.add_attack("a1", "r0")
-    g.add_attack("s4", "t1")  # Natural immunity attacks prevention claim
-    g.add_attack("s5", "t2")  # Toxins attack safety
-    
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
-    return g
 
 
 # ----------------------------
@@ -265,7 +193,7 @@ def build_strategic_majority_graph() -> ArgumentationGraph:
     g.add_attack("a6", "r0")
     g.add_attack("a7", "r0")
     
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     return g
 
 
@@ -337,7 +265,7 @@ def build_multi_root_graph() -> ArgumentationGraph:
     g.add_attack("t2", "f2")  # Court cases refute machine claims
     
     # Force r1 as root (in real scenario, find_semantic_root would choose)
-    g.find_semantic_root = lambda prefer_attack_only=True: "r1"
+    g.root_id_override = "r1"
     return g
 
 

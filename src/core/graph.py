@@ -2,7 +2,7 @@
 
 import networkx as nx
 from dataclasses import dataclass
-from typing import Set, Dict, Optional
+from typing import Set, Dict, Optional, Callable, List
 
 
 @dataclass
@@ -35,6 +35,8 @@ class ArgumentationGraph:
     def __init__(self) -> None:
         self.nx_graph: nx.DiGraph = nx.DiGraph()
         self.nodes: Dict[str, ArgumentNode] = {}
+        self.claim: Optional[str] = None
+        self.root_id_override: Optional[str] = None
 
     # ------------------------------------------------------------------
     # Basic graph construction
@@ -109,13 +111,27 @@ class ArgumentationGraph:
     # ------------------------------------------------------------------
     # Root detection heuristic (optional)
     # ------------------------------------------------------------------
-    def find_semantic_root(self, prefer_attack_only: bool = True) -> Optional[str]:
+    def find_semantic_root(
+        self,
+        prefer_attack_only: bool = True,
+        claim: Optional[str] = None,
+        llm_tiebreaker: Optional[Callable[[str, List[str]], Optional[str]]] = None,
+        tie_topk: int = 3,
+        tie_margin: float = 0.05,
+    ) -> Optional[str]:
         """
         Heuristic to identify a semantic root node.
 
         Important: if prefer_attack_only=True, compute centrality on the attack-only subgraph
         to reduce sensitivity to support-spam.
+
+        Hybrid tie-breaker:
+        - Use topology score first.
+        - If top-k scores are close, optionally rerank with LLM to match claim.
         """
+        if self.root_id_override:
+            return self.root_id_override
+
         if not self.nx_graph.nodes:
             return None
 
@@ -127,23 +143,32 @@ class ArgumentationGraph:
             pagerank = {n: 0.0 for n in g.nodes}
 
         in_degree = dict(g.in_degree())
+        max_in_deg = max(in_degree.values()) if in_degree else 1.0
 
         scores: Dict[str, float] = {}
         for node_id in g.nodes:
-            try:
-                index_num = int("".join(filter(str.isdigit, node_id)))
-                time_weight = 1.0 / (index_num + 0.5)
-            except Exception:
-                time_weight = 0.1
+            indeg_norm = float(in_degree.get(node_id, 0)) / float(max_in_deg or 1.0)
+            scores[node_id] = 0.6 * float(pagerank.get(node_id, 0.0)) + 0.4 * indeg_norm
 
-            scores[node_id] = (
-                0.5 * float(pagerank.get(node_id, 0.0))
-                + 0.3 * float(in_degree.get(node_id, 0))
-                + 0.2 * float(time_weight)
-            )
+        ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        if not ranked:
+            return None
 
-        sorted_nodes = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        return sorted_nodes[0][0] if sorted_nodes else None
+        top_id, top_score = ranked[0]
+        if not claim or llm_tiebreaker is None:
+            return top_id
+
+        topk = ranked[: max(1, int(tie_topk))]
+        if len(topk) <= 1:
+            return top_id
+
+        cutoff = float(top_score) * (1.0 - float(tie_margin))
+        close = [nid for nid, score in topk if score >= cutoff]
+        if len(close) <= 1:
+            return top_id
+
+        pick = llm_tiebreaker(claim, close)
+        return pick if pick in close else top_id
 
     # ------------------------------------------------------------------
     # Shielded grounded semantics (SGS)

@@ -57,7 +57,7 @@ def test_S0A_budget_never_negative() -> TestResult:
     add_node(g, "s2", "Claim: Support 2", cost=1.0)
     g.add_support("s1", "r0")
     g.add_support("s2", "r0")
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     
     # Run with tight budget
     solver = MaVERiCSolver(graph=g, budget=3.0)
@@ -91,7 +91,7 @@ def test_S0A_infeasible_not_selected() -> TestResult:
     add_node(g, "r0", "Claim: Expensive root", cost=10.0)
     add_node(g, "s1", "Claim: Cheap supporter", cost=1.0)
     g.add_support("s1", "r0")
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     
     solver = MaVERiCSolver(graph=g, budget=5.0)
     solver.run()
@@ -163,7 +163,7 @@ def test_S0C_roi_picks_impactful() -> TestResult:
     
     g.add_attack("a1", "r0")
     g.add_support("s1", "r0")
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     
     solver = MaVERiCSolver(graph=g, budget=10.0)
     
@@ -213,7 +213,7 @@ def test_S0C_spam_robustness() -> TestResult:
         g.add_support(f"spam{i}", "r0")
     
     g.add_attack("a1", "r0")
-    g.find_semantic_root = lambda prefer_attack_only=True: "r0"
+    g.root_id_override = "r0"
     
     solver = MaVERiCSolver(graph=g, budget=15.0)
     solver.root_id = g.find_semantic_root()
@@ -256,7 +256,7 @@ def test_S0D_truth_attack_removed() -> TestResult:
     add_node(g, "a", "Claim: Node A", cost=1.0)
     add_node(g, "b", "Claim: Node B", cost=1.0)
     g.add_attack("a", "b")
-    g.find_semantic_root = lambda prefer_attack_only=True: "a"
+    g.root_id_override = "a"
     
     # Manually verify both as TRUE
     g.nodes["a"].is_verified = True

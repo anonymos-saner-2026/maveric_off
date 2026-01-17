@@ -609,7 +609,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
           - If root verified directly, use y_direct.
           - Else use membership of root in final grounded extension.
         """
-        self.root_id = self.graph.find_semantic_root()
+        self.root_id = self.graph.find_semantic_root(claim=getattr(self.graph, "claim", None))
 
         while self.budget > 0:
             active = [
@@ -667,7 +667,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         for nid, n in self.graph.nodes.items():
             self._add_log(f"🔹 [{nid}] ({getattr(n, 'speaker', 'UNK')}): {n.content}")
 
-        self.root_id = self.graph.find_semantic_root()
+        self.root_id = self.graph.find_semantic_root(claim=getattr(self.graph, "claim", None))
         yield self._add_log(f"📍 Auto-detected Semantic Root: {self.root_id}")
         yield "start"
 

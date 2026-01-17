@@ -472,8 +472,9 @@ def parse_debate(text: str) -> ArgumentationGraph:
         )
     except Exception:
         af = ArgumentationGraph()
+        af.claim = transcript or ""
         _ensure_root(af, transcript or "Topic claim.")
-        af.find_semantic_root = lambda prefer_attack_only=True: "A1"
+        af.root_id_override = "A1"
         return af
 
     args = dataA.get("arguments", [])
@@ -499,6 +500,7 @@ def parse_debate(text: str) -> ArgumentationGraph:
 
     # build graph
     af = ArgumentationGraph()
+    af.claim = transcript or ""
 
     # nodes
     for item in args:
@@ -597,5 +599,5 @@ def parse_debate(text: str) -> ArgumentationGraph:
     # Finalize
     # -------------------
     _sanitize_graph(af)
-    af.find_semantic_root = lambda prefer_attack_only=True: "A1"
+    af.root_id_override = "A1"
     return af

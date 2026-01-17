@@ -96,7 +96,7 @@ def record_to_graph(rec: Dict[str, Any]) -> ArgumentationGraph:
 
     root_id = rec.get("root_id")
     if root_id:
-        g.find_semantic_root = lambda prefer_attack_only=True: str(root_id)
+        g.root_id_override = str(root_id)
 
     return g
 
@@ -190,7 +190,7 @@ def create_debate_graph_from_claim(
             tool_type="AUTO",
         )
         g.add_node(root)
-        g.find_semantic_root = lambda prefer_attack_only=True: f"{claim_id}_root"
+        g.root_id_override = f"{claim_id}_root"
         return g
 
     try:
@@ -210,7 +210,7 @@ def create_debate_graph_from_claim(
             tool_type="AUTO",
         )
         g.add_node(root)
-        g.find_semantic_root = lambda prefer_attack_only=True: f"{claim_id}_root"
+        g.root_id_override = f"{claim_id}_root"
 
     # optionally append to cache
     if append_cache_on_miss and graph_cache_path:
@@ -321,6 +321,7 @@ def run_solver_on_statement(
         # NEW: refinement stats if solver exposes them
         pruned = int(getattr(solver, "pruned_count", 0) or 0)
         edges_removed = int(getattr(solver, "edges_removed_count", 0) or 0)
+        edges_removed_false_refine = int(getattr(solver, "edges_removed_false_refine_count", 0) or 0)
         edges_removed_pruned = int(getattr(solver, "edges_removed_prune_count", 0) or 0)
 
         error = None
@@ -350,6 +351,7 @@ def run_solver_on_statement(
         "tool_calls_total": tool_calls_total,
         "pruned": int(pruned),
         "edges_removed": int(edges_removed),
+        "edges_removed_false_refine": int(edges_removed_false_refine),
         "edges_removed_pruned": int(edges_removed_pruned),
         "error": error,
     }
@@ -507,6 +509,8 @@ def run_maveric_on_sample(
             "refinement_stats": {
                 "pruned": int(truth_res.get("pruned", 0)) + int(false_res.get("pruned", 0)),
                 "edges_removed": int(truth_res.get("edges_removed", 0)) + int(false_res.get("edges_removed", 0)),
+                "edges_removed_false_refine": int(truth_res.get("edges_removed_false_refine", 0))
+                + int(false_res.get("edges_removed_false_refine", 0)),
                 "edges_removed_pruned": int(truth_res.get("edges_removed_pruned", 0)) + int(false_res.get("edges_removed_pruned", 0)),
                 "sgs_size": max(truth_ext, false_ext),
                 "truth_final_ext_size": truth_ext,
@@ -563,6 +567,7 @@ def run_maveric_on_sample(
         "pruned": int(getattr(solver, "pruned_count", 0) or 0),
         "sgs_size": int(len(final_ext)),
         "edges_removed": int(getattr(solver, "edges_removed_count", 0) or 0),
+        "edges_removed_false_refine": int(getattr(solver, "edges_removed_false_refine_count", 0) or 0),
         "edges_removed_pruned": int(getattr(solver, "edges_removed_prune_count", 0) or 0),
     }
 
