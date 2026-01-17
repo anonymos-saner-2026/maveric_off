@@ -1314,7 +1314,7 @@ Output only the rewritten factual claim (no quotes).
                     
                     # Let's try to match unit in the REMAINING text if multiplier found
                     match = re.match(r"^" + re.escape(mult_word) + r"\b", after_text)
-                    match_end = match.end() if match else 0
+                    match_end = match.end() if match else 0  # type: ignore[union-attr]
                     remaining = after_text[match_end:].strip()
                     
                     for unit_word, unit_val in length_units.items():
@@ -1562,6 +1562,8 @@ Output only the rewritten factual claim (no quotes).
                 return {"type": "chain", "hint": "Follow the connection between entities"}
                 
         return None
+
+    @staticmethod
     def _extract_temporal_context(text: str) -> List[str]:
         """
         Extract temporal expressions from text.
@@ -2340,14 +2342,17 @@ Output as strict JSON:
                     clean_fact = RealToolkit._rewrite_meta_to_factual(clean_fact)
 
                 queries_rounds: List[List[str]] = RealToolkit._make_queries(clean_fact)
+                if FAST_MODE:
+                    queries_rounds = queries_rounds[:1]
 
                 all_serper: List[Dict[str, str]] = []
                 all_ddg: List[Dict[str, str]] = []
 
                 def run_round(qs: List[str], round_idx: int) -> None:
                     nonlocal all_serper, all_ddg
-                    print(f"        🔁 WEB round {round_idx}: {len(qs)} queries")
-                    for qi, q in enumerate(qs, start=1):
+                    fast_qs = qs[:2] if FAST_MODE else qs
+                    print(f"        🔁 WEB round {round_idx}: {len(fast_qs)} queries")
+                    for qi, q in enumerate(fast_qs, start=1):
                         q = (q or "").strip()
                         if not q:
                             continue
@@ -2369,7 +2374,7 @@ Output as strict JSON:
                         run_round(qs, ridx)
 
                     trusted_cnt = sum(1 for h in (all_serper + all_ddg) if _is_trusted_domain(h.get("url", "")))
-                    if trusted_cnt >= 6:
+                    if trusted_cnt >= (3 if FAST_MODE else 6):
                         break
 
                 def dedup(hits: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -2390,7 +2395,7 @@ Output as strict JSON:
                 # NEW: coverage gate + 1 extra LLM query round
                 if combined_hits and (not RealToolkit._coverage_ok(clean_fact, combined_hits)):
                     extra_qs = RealToolkit._llm_suggest_queries(clean_fact)
-                    if extra_qs:
+                    if extra_qs and not FAST_MODE:
                         run_round(extra_qs[:4], round_idx=99)
                         all_serper = dedup(all_serper)
                         all_ddg = dedup(all_ddg)
@@ -2437,7 +2442,8 @@ Output as strict JSON:
                     print(f"        ⚠️ Heuristic skipped (coverage={coverage_ok}, trusted={trusted_cnt})")
 
                 evidence_base = trusted_hits if trusted_hits else combined_hits
-                evidence_lines = _summarize_hits(evidence_base, max_n=8) if evidence_base else ""
+                max_evidence = 5 if FAST_MODE else 8
+                evidence_lines = _summarize_hits(evidence_base, max_n=max_evidence) if evidence_base else ""
 
                 if not evidence_lines.strip():
                     v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
@@ -2461,23 +2467,32 @@ Output as strict JSON:
                 elif jr.verdict is False and jr.final_confidence >= RealToolkit.JUDGE_FALSE_MIN_FINAL_CONF:
                     final = False
                 else:
-                    sem_v, sem_conf, sem_rat = RealToolkit._llm_semantic_fallback(clean_fact, evidence_lines)
-                    print(
-                        f"        🧠 SEMANTIC vote={sem_v} conf={sem_conf:.2f} rationale={sem_rat}"
-                    )
-
-                    if sem_v is not None and sem_conf >= RealToolkit.JUDGE_FALLBACK_MIN_CONF:
-                        final = bool(sem_v)
-                    else:
+                    if FAST_MODE:
                         v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
                         print(f"        🧠 COMMON_SENSE vote={v_cs}")
-
-                        # CRITICAL FIX: don't default to FALSE when only common-sense votes
                         if v_cs is not None and (v_serper is None) and (v_ddg is None):
                             final = bool(v_cs)
                         else:
                             final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
                             final = bool(final_vote) if final_vote is not None else False
+                    else:
+                        sem_v, sem_conf, sem_rat = RealToolkit._llm_semantic_fallback(clean_fact, evidence_lines)
+                        print(
+                            f"        🧠 SEMANTIC vote={sem_v} conf={sem_conf:.2f} rationale={sem_rat}"
+                        )
+
+                        if sem_v is not None and sem_conf >= RealToolkit.JUDGE_FALLBACK_MIN_CONF:
+                            final = bool(sem_v)
+                        else:
+                            v_cs = RealToolkit._llm_common_sense_vote(clean_fact)
+                            print(f"        🧠 COMMON_SENSE vote={v_cs}")
+
+                            # CRITICAL FIX: don't default to FALSE when only common-sense votes
+                            if v_cs is not None and (v_serper is None) and (v_ddg is None):
+                                final = bool(v_cs)
+                            else:
+                                final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
+                                final = bool(final_vote) if final_vote is not None else False
 
                 RealToolkit._cache[cache_key] = bool(final)
                 status_icon = "✅" if final else "❌"

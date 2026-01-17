@@ -3,24 +3,25 @@ metrics.py
 Metrics calculation utilities for evaluation.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Sequence
 import numpy as np
 from collections import Counter
 
 
-def calculate_accuracy(predicted: List[bool], gold: List[bool]) -> float:
-    """Calculate accuracy"""
+def calculate_accuracy(predicted: Sequence[Optional[bool]], gold: Sequence[Optional[bool]]) -> float:
+    """Calculate accuracy (skips None predictions)"""
     if len(predicted) != len(gold):
         raise ValueError("Predicted and gold must have same length")
-    
-    if len(predicted) == 0:
+
+    pairs = [(p, g) for p, g in zip(predicted, gold) if p is not None and g is not None]
+    if not pairs:
         return 0.0
-    
-    correct = sum(1 for p, g in zip(predicted, gold) if p == g)
-    return correct / len(predicted)
+
+    correct = sum(1 for p, g in pairs if p == g)
+    return correct / len(pairs)
 
 
-def calculate_precision_recall_f1(predicted: List[bool], gold: List[bool]) -> Dict[str, float]:
+def calculate_precision_recall_f1(predicted: Sequence[Optional[bool]], gold: Sequence[Optional[bool]]) -> Dict[str, float]:
     """
     Calculate precision, recall, and F1 for binary classification.
     
@@ -29,14 +30,15 @@ def calculate_precision_recall_f1(predicted: List[bool], gold: List[bool]) -> Di
     """
     if len(predicted) != len(gold):
         raise ValueError("Predicted and gold must have same length")
-    
-    if len(predicted) == 0:
-        return {"precision": 0.0, "recall": 0.0, "f1": 0.0}
-    
-    tp = sum(1 for p, g in zip(predicted, gold) if p == True and g == True)
-    fp = sum(1 for p, g in zip(predicted, gold) if p == True and g == False)
-    fn = sum(1 for p, g in zip(predicted, gold) if p == False and g == True)
-    tn = sum(1 for p, g in zip(predicted, gold) if p == False and g == False)
+
+    pairs = [(p, g) for p, g in zip(predicted, gold) if p is not None and g is not None]
+    if len(pairs) == 0:
+        return {"precision": 0.0, "recall": 0.0, "f1": 0.0, "tp": 0, "fp": 0, "fn": 0, "tn": 0}
+
+    tp = sum(1 for p, g in pairs if p is True and g is True)
+    fp = sum(1 for p, g in pairs if p is True and g is False)
+    fn = sum(1 for p, g in pairs if p is False and g is True)
+    tn = sum(1 for p, g in pairs if p is False and g is False)
     
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
@@ -162,7 +164,7 @@ def aggregate_refinement_stats(results: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 if __name__ == "__main__":
     # Test metrics
-    predicted = [True, True, False, True, False]
+    predicted = [True, True, False, True, None]
     gold = [True, False, False, True, True]
     
     acc = calculate_accuracy(predicted, gold)

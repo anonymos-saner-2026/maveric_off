@@ -41,10 +41,11 @@ def print_summary(results: List[Dict[str, Any]], filepath: str):
         dataset = "unknown"
     
     n_samples = len(results)
+    n_verified = len([r for r in results if not r.get("unverified")])
     
     # Extract predictions and labels
-    predicted = [r["predicted_label"] for r in results]
-    gold = [r["gold_label"] for r in results]
+    predicted = [r.get("predicted_label") for r in results]
+    gold = [r.get("gold_label") for r in results]
     
     # Calculate metrics
     accuracy = calculate_accuracy(predicted, gold)
@@ -70,13 +71,14 @@ def print_summary(results: List[Dict[str, Any]], filepath: str):
     print(f"Results file: {filepath}")
     print(f"Dataset: {dataset}")
     print(f"Method: {method}")
-    print(f"Samples: {n_samples}")
+    print(f"Samples: {n_samples} (verified: {n_verified})")
     
     print("\n" + "-"*70)
     print("CLASSIFICATION METRICS")
     print("-"*70)
-    correct = sum(1 for r in results if r["correct"])
-    print(f"Accuracy:  {accuracy:.4f} ({correct}/{n_samples})")
+    verified = [r for r in results if not r.get("unverified")]
+    correct = sum(1 for r in verified if r.get("correct"))
+    print(f"Accuracy:  {accuracy:.4f} ({correct}/{len(verified)})")
     print(f"Precision: {prf_metrics['precision']:.4f}")
     print(f"Recall:    {prf_metrics['recall']:.4f}")
     print(f"F1:        {prf_metrics['f1']:.4f}")

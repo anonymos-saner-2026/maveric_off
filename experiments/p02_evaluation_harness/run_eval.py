@@ -311,6 +311,7 @@ def run_solver_on_statement(
         y_direct = getattr(solver, "y_direct", None)
         root_id = getattr(solver, "root_id", None)
         root_in_ext = bool(root_id and root_id in final_ext)
+        unverified = verdict is None
 
         vt = len(getattr(solver, "verified_true_ids", set()) or set())
         vf = len(getattr(solver, "verified_false_ids", set()) or set())
@@ -328,9 +329,10 @@ def run_solver_on_statement(
         error = None
 
     except Exception as e:
-        final_ext, verdict = set(), False
+        final_ext, verdict = set(), None
         y_direct, root_in_ext, vt, vf, score = None, False, 0, 0, -1e9
         pruned, edges_removed, edges_removed_false_refine, edges_removed_pruned = 0, 0, 0, 0
+        unverified = True
         error = str(e)
 
     budget_left = float(getattr(solver, "budget", 0.0) or 0.0)
@@ -340,9 +342,10 @@ def run_solver_on_statement(
 
     return {
         "statement": statement,
-        "verdict": bool(verdict),
+        "verdict": None if verdict is None else bool(verdict),
         "y_direct": y_direct,
         "root_in_ext": bool(root_in_ext),
+        "unverified": bool(unverified),
         "verified_true": int(vt),
         "verified_false": int(vf),
         "score": float(score),
@@ -420,7 +423,10 @@ def _rank_tuple(res: _Dict[str, _Any]) -> tuple:
 
     return (-has_error, ycat, conf, net, -tool_calls, -budget_used, -ext)
 
-def truthfulqa_decide_pair_robust(truth_res: _Dict[str, _Any], false_res: _Dict[str, _Any]) -> bool:
+def truthfulqa_decide_pair_robust(truth_res: _Dict[str, _Any], false_res: _Dict[str, _Any]) -> Optional[bool]:
+    if bool(truth_res.get("unverified")) and bool(false_res.get("unverified")):
+        return None
+
     rt = _rank_tuple(truth_res)
     rf = _rank_tuple(false_res)
     if rt > rf:
@@ -491,6 +497,7 @@ def run_maveric_on_sample(
 
         predicted_label = truthfulqa_decide_pair_robust(truth_res, false_res)
         gold_label = True
+        unverified_pair = predicted_label is None
 
         runtime_s = time.time() - start_time
         truth_ext = int(truth_res.get("final_ext_size", 0) or 0)
@@ -504,7 +511,8 @@ def run_maveric_on_sample(
             "false_statement": false_stmt,
             "gold_label": gold_label,
             "predicted_label": predicted_label,
-            "correct": (predicted_label == gold_label),
+            "unverified": bool(unverified_pair),
+            "correct": (predicted_label == gold_label) if predicted_label is not None else False,
             "budget_used": round(float(truth_res["budget_used"]) + float(false_res["budget_used"]), 2),
             "tool_calls": {"TOTAL": int(truth_res["tool_calls_total"]) + int(false_res["tool_calls_total"])},
             "refinement_stats": {
@@ -553,9 +561,9 @@ def run_maveric_on_sample(
 
     try:
         final_ext, verdict = solver.run()
-        predicted_label = bool(verdict)
+        predicted_label = None if verdict is None else bool(verdict)
     except Exception as e:
-        predicted_label = False
+        predicted_label = None
         final_ext = set()
         error = str(e)
 
@@ -578,7 +586,8 @@ def run_maveric_on_sample(
         "claim": claim,
         "gold_label": gold_label,
         "predicted_label": predicted_label,
-        "correct": (predicted_label == gold_label),
+        "unverified": predicted_label is None,
+        "correct": (predicted_label == gold_label) if predicted_label is not None else False,
         "budget_used": round(budget_used, 2),
         "tool_calls": tool_calls,
         "refinement_stats": refinement_stats,

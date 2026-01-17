@@ -709,7 +709,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
     # --------------------------
     # Core runner
     # --------------------------
-    def run(self) -> Tuple[set, bool]:
+    def run(self) -> Tuple[Set[str], Optional[bool]]:
         for node in self.graph.nodes.values():
             node.is_verified = False
             node.ground_truth = None
@@ -796,7 +796,11 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
         final_ext = self._sgs()
 
-        if self.y_direct is not None:
+        evidence_used = (self.tool_calls > 0) or (len(self.verified_true_ids) + len(self.verified_false_ids) > 0)
+
+        if not evidence_used:
+            verdict = None
+        elif self.y_direct is not None:
             verdict = bool(self.y_direct)
         else:
             verdict = bool(self.root_id in final_ext) if self.root_id else False

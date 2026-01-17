@@ -20,7 +20,7 @@
 
 import copy
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Set
 
 import networkx as nx
 
@@ -198,7 +198,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.0,
             )
-            tool = res.choices[0].message.content.strip().upper()
+            tool = (res.choices[0].message.content or "").strip().upper()
             if "PYTHON" in tool:
                 return "PYTHON_EXEC"
             if "SEARCH" in tool:
@@ -601,7 +601,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
     # --------------------------
     # Core runners
     # --------------------------
-    def run(self) -> Tuple[set, bool]:
+    def run(self) -> Tuple[Set[str], Optional[bool]]:
         """
         Batch run: returns (final_grounded_extension, verdict).
 
@@ -631,17 +631,20 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 break
 
             best_node, best_roi, best_delta, tool, cost = max(candidates, key=lambda x: x[1])
+            best_node_id = getattr(best_node, "id", None)
 
             is_true = self._verify_node(best_node, tool, cost)
 
             # direct override if root verified
-            if self.root_id and best_node.id == self.root_id:
+            if self.root_id and best_node_id and best_node_id == self.root_id:
                 self.y_direct = is_true
 
             if not is_true:
-                self._prune_node(best_node.id)
+                if best_node_id:
+                    self._prune_node(best_node_id)
             else:
-                self._refine_topology_after_true(best_node.id)
+                if best_node_id:
+                    self._refine_topology_after_true(best_node_id)
 
         final_ext = set(self.graph.get_grounded_extension())
 
@@ -699,23 +702,30 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 break
 
             delta_root, delta_local = best_delta
+            best_node_id = getattr(best_node, "id", None)
             yield self._add_log(
-                f"🔍 Verifying Keystone {best_node.id} (ROI: {best_roi:.3f}, "
+                f"🔍 Verifying Keystone {best_node_id} (ROI: {best_roi:.3f}, "
                 f"Δroot={delta_root}, Δlocal={delta_local:.3f}, tool={tool}, cost={cost:.2f})..."
             )
 
             is_true = self._verify_node(best_node, tool, cost)
 
-            if self.root_id and best_node.id == self.root_id:
+            if self.root_id and best_node_id and best_node_id == self.root_id:
                 self.y_direct = is_true
 
             if not is_true:
-                impacted = list(self.graph.nx_graph.successors(best_node.id)) if best_node.id in self.graph.nx_graph else []
-                self._prune_node(best_node.id)
-                yield self._add_log(f"💥 FALSE. Pruned {best_node.id} and {len(impacted)} dependent claims.")
+                impacted = (
+                    list(self.graph.nx_graph.successors(best_node_id))
+                    if best_node_id and best_node_id in self.graph.nx_graph
+                    else []
+                )
+                if best_node_id:
+                    self._prune_node(best_node_id)
+                yield self._add_log(f"💥 FALSE. Pruned {best_node_id} and {len(impacted)} dependent claims.")
             else:
-                self._refine_topology_after_true(best_node.id)
-                yield self._add_log(f"🛡️ TRUE. Refinement updated via {best_node.id}.")
+                if best_node_id:
+                    self._refine_topology_after_true(best_node_id)
+                yield self._add_log(f"🛡️ TRUE. Refinement updated via {best_node_id}.")
 
             conf_score = self._calculate_structural_confidence(pagerank_scores)
 
@@ -725,7 +735,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 "budget": self.budget,
                 "pagerank": pagerank_scores,
                 "confidence": conf_score,
-                "highlight_node": best_node.id,
+                "highlight_node": best_node_id,
                 "shielded": self.graph.get_shielded_nodes() if hasattr(self.graph, "get_shielded_nodes") else [],
                 "root_id": self.root_id,
                 "y_direct": self.y_direct,
