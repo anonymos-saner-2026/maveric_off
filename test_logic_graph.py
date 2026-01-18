@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Set
 
 import networkx as nx
+from typing import Optional
 
 # Import your merged solver. Adjust this import path if needed.
 import src.core.solver_v2 as solver_v2
@@ -107,7 +108,7 @@ class DummyGraph:
 # -----------------------------
 class DummyToolkit:
     @staticmethod
-    def verify_claim(tool_type: str, claim: str) -> bool:
+    def verify_claim(tool_type: str, claim: str) -> Optional[bool]:
         # Not used in ROI tests; keep deterministic anyway.
         return True
 

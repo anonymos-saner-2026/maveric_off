@@ -47,12 +47,18 @@ def assert_is_bool(name, x):
         _fail(f"[{name}] expected bool, got {type(x)}: {x}")
     _ok(f"{name} (bool)")
 
-def assert_json_list(name, s):
+def assert_json_payload(name, s):
     try:
         obj = json.loads(s)
-        if not isinstance(obj, list):
-            _fail(f"[{name}] expected JSON list, got {type(obj)}")
-        _ok(f"{name} (json list, len={len(obj)})")
+        if isinstance(obj, list):
+            _ok(f"{name} (json list, len={len(obj)})")
+            return
+        if isinstance(obj, dict):
+            if not all(k in obj for k in ("query", "serper", "ddg")):
+                _fail(f"[{name}] missing keys in JSON dict")
+            _ok(f"{name} (json dict, keys={list(obj.keys())})")
+            return
+        _fail(f"[{name}] expected JSON list or dict, got {type(obj)}")
     except Exception as e:
         _fail(f"[{name}] invalid JSON: {e}\nRaw: {s[:300]}")
 
@@ -89,7 +95,7 @@ def test_google_search_returns_json():
     if not SERPER_API_KEY:
         _warn("SERPER_API_KEY is empty. google_search will fallback to DDG, which can be flaky in some environments.")
     s = RealToolkit.google_search("Eiffel Tower location")
-    assert_json_list("google_search_json", s)
+    assert_json_payload("google_search_json", s)
 
 
 def test_verify_attack_support_basic():

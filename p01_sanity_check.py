@@ -169,17 +169,22 @@ def test_S0C_roi_picks_impactful() -> TestResult:
     
     # Run one step and check which node was picked
     solver.root_id = g.find_semantic_root()
-    
+
     # Get candidates
     S_curr = set(g.get_grounded_extension(use_shield=True, alpha=solver.sgs_alpha))
-    active = [n for n in g.nodes.values() if not n.is_verified and n.id in g.nx_graph]
-    
+    active = [n for n in g.nodes.values() if not n.is_verified and getattr(n, "id", None) in g.nx_graph]
+
     if not active:
         return TestResult("S0C-5: ROI Picks Impactful", False, "No active nodes")
-    
+
     g_atk = solver._attack_only_graph()
-    dist_to_root = solver._attack_distance_to_root(g_atk, solver.root_id)
-    Nk_atk = {solver.root_id, "a1"}  # Simplified
+    if not solver.root_id:
+        return TestResult("S0C-5: ROI Picks Impactful", False, "No root id")
+    root_id = solver.root_id
+    if not root_id:
+        return TestResult("S0C-5: ROI Picks Impactful", False, "No root id")
+    dist_to_root = solver._attack_distance_to_root(g_atk, root_id)
+    Nk_atk = {root_id, "a1"}  # Simplified
     
     candidates = solver._calculate_roi_candidates(active, S_curr, g_atk, Nk_atk, dist_to_root)
     
@@ -190,13 +195,13 @@ def test_S0C_roi_picks_impactful() -> TestResult:
     candidates_sorted = sorted(candidates, key=lambda x: x[1], reverse=True)
     best_node, best_roi, _, _, _ = candidates_sorted[0]
     
+    best_node_id = getattr(best_node, "id", None)
     # Attacker should have higher ROI than supporter (attacks root directly)
-    if best_node.id == "a1":
+    if best_node_id == "a1":
         return TestResult("S0C-5: ROI Picks Impactful", True,
                         f"Attacker 'a1' selected (ROI={best_roi:.4f})")
-    else:
-        return TestResult("S0C-5: ROI Picks Impactful", False,
-                        f"Wrong node selected: {best_node.id} (ROI={best_roi:.4f})")
+    return TestResult("S0C-5: ROI Picks Impactful", False,
+                    f"Wrong node selected: {best_node_id} (ROI={best_roi:.4f})")
 
 
 def test_S0C_spam_robustness() -> TestResult:
@@ -217,25 +222,28 @@ def test_S0C_spam_robustness() -> TestResult:
     
     solver = MaVERiCSolver(graph=g, budget=15.0)
     solver.root_id = g.find_semantic_root()
-    
+
     S_curr = set(g.get_grounded_extension(use_shield=True, alpha=solver.sgs_alpha))
-    active = [n for n in g.nodes.values() if not n.is_verified and n.id in g.nx_graph]
-    
+    active = [n for n in g.nodes.values() if not n.is_verified and getattr(n, "id", None) in g.nx_graph]
+
     g_atk = solver._attack_only_graph()
-    dist_to_root = solver._attack_distance_to_root(g_atk, solver.root_id)
-    
+    root_id = solver.root_id
+    if not root_id:
+        return TestResult("S0C-6: Spam Robustness", False, "No root id")
+    dist_to_root = solver._attack_distance_to_root(g_atk, root_id)
+
     # k-hop neighborhood should prioritize attack graph
-    Nk_atk = {solver.root_id, "a1"}
-    
+    Nk_atk = {root_id, "a1"}
+
     candidates = solver._calculate_roi_candidates(active, S_curr, g_atk, Nk_atk, dist_to_root)
-    
+
     if not candidates:
         return TestResult("S0C-6: Spam Robustness", False, "No candidates")
-    
+
     candidates_sorted = sorted(candidates, key=lambda x: x[1], reverse=True)
-    
+
     # Check if attacker is in top 3
-    top3_ids = [c[0].id for c in candidates_sorted[:3]]
+    top3_ids = [getattr(c[0], "id", None) for c in candidates_sorted[:3]]
     
     if "a1" in top3_ids:
         return TestResult("S0C-6: Spam Robustness", True,

@@ -133,6 +133,9 @@ class RandomSolver:
             node.is_verified = True
 
             is_true = RealToolkit.verify_claim(tool_type, node.content)
+            if is_true is None:
+                node.ground_truth = None
+                break
             node.ground_truth = bool(is_true)
 
             if not is_true:
@@ -173,6 +176,9 @@ class CRITICSolver:
             node.is_verified = True
 
             is_true = RealToolkit.verify_claim(tool_type, node.content)
+            if is_true is None:
+                node.ground_truth = None
+                break
             node.ground_truth = bool(is_true)
 
             if not is_true:

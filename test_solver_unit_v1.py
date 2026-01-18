@@ -1,6 +1,7 @@
 # test_solver_unit_v1.py
 import types
 import networkx as nx
+from typing import Optional
 
 from src.core.solver import MaVERiCSolver
 from src.core.graph import ArgumentationGraph, ArgumentNode
@@ -19,7 +20,7 @@ class MockRealToolkit:
     sup_map = {}
 
     @staticmethod
-    def verify_claim(tool_type: str, claim: str) -> bool:
+    def verify_claim(tool_type: str, claim: str) -> Optional[bool]:
         return bool(MockRealToolkit.claim_truth.get(claim, True))
 
     @staticmethod

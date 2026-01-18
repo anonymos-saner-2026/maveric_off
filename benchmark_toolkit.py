@@ -41,7 +41,7 @@ class ClaimCase:
 @dataclass
 class CaseResult:
     case: ClaimCase
-    pred: bool
+    pred: Optional[bool]
     ok: bool
     latency_s: float
     error: Optional[str] = None
@@ -148,12 +148,13 @@ def run_case(case: ClaimCase, quiet: bool = True) -> CaseResult:
     err = None
     try:
         # verify_claim prints logs; if you want silence, redirect stdout outside (not done here).
-        pred = bool(RealToolkit.verify_claim(case.tool, case.claim))
+        pred_raw = RealToolkit.verify_claim(case.tool, case.claim)
+        pred = bool(pred_raw) if pred_raw is not None else None
     except Exception as e:
-        pred = True  # match toolkit failure policy (keep True)
+        pred = None
         err = repr(e)
     dt = time.time() - t0
-    ok = (pred == case.gold)
+    ok = (pred == case.gold) if pred is not None else False
     if not quiet:
         print(f"[{case.id}] tool={case.tool} gold={case.gold} pred={pred} ok={ok} ({dt:.2f}s)")
     return CaseResult(case=case, pred=pred, ok=ok, latency_s=dt, error=err)

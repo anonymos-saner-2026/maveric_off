@@ -272,6 +272,16 @@ def truthfulqa_extract_pair(sample: Dict[str, Any]) -> Tuple[str, str]:
 # -------------------------
 # Solver runner
 # -------------------------
+def _apply_tool_costs(graph: ArgumentationGraph, tool_costs: Optional[Dict[str, float]]) -> None:
+    if not tool_costs:
+        return
+
+    for node in graph.nodes.values():
+        tool = str(getattr(node, "tool_type", "AUTO") or "AUTO").upper()
+        if tool in tool_costs:
+            node.verification_cost = float(tool_costs[tool])
+
+
 def run_solver_on_statement(
     statement: str,
     statement_id: str,
@@ -283,6 +293,7 @@ def run_solver_on_statement(
     graph_cache_path: str,
     verbose: bool = False,
     pair_role: Optional[str] = None,
+    tool_costs: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     if verbose:
         print(f"    🧩 Building graph for: {statement[:120]}... (id={statement_id})")
@@ -297,12 +308,14 @@ def run_solver_on_statement(
         graph_cache_path=graph_cache_path,
         pair_role=pair_role,
     )
+    _apply_tool_costs(graph, tool_costs)
 
     solver = MaVERiCSolver(
         graph=graph,
         budget=budget,
         topk_counterfactual=8,
         delta_support_to_root=0.8,
+        tool_costs=tool_costs,
     )
 
     try:
@@ -311,7 +324,7 @@ def run_solver_on_statement(
         y_direct = getattr(solver, "y_direct", None)
         root_id = getattr(solver, "root_id", None)
         root_in_ext = bool(root_id and root_id in final_ext)
-        unverified = verdict is None
+        unverified = verdict is None or bool(getattr(solver, "verify_error", False))
 
         vt = len(getattr(solver, "verified_true_ids", set()) or set())
         vf = len(getattr(solver, "verified_false_ids", set()) or set())
@@ -452,6 +465,7 @@ def run_maveric_on_sample(
     append_cache_on_miss: bool,
     graph_cache_path: str,
     verbose: bool = False,
+    tool_costs: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     sample_id = str(sample.get("id", "unknown"))
     ds = _safe_get_dataset_name(sample, dataset_name)
@@ -481,6 +495,7 @@ def run_maveric_on_sample(
             graph_cache_path=graph_cache_path,
             verbose=verbose,
             pair_role="truth",
+            tool_costs=tool_costs,
         )
         false_res = run_solver_on_statement(
             statement=false_stmt,
@@ -493,6 +508,7 @@ def run_maveric_on_sample(
             graph_cache_path=graph_cache_path,
             verbose=verbose,
             pair_role="false",
+            tool_costs=tool_costs,
         )
 
         predicted_label = truthfulqa_decide_pair_robust(truth_res, false_res)
@@ -548,12 +564,14 @@ def run_maveric_on_sample(
         graph_cache_path=graph_cache_path,
         pair_role=None,
     )
+    _apply_tool_costs(graph, tool_costs)
 
     solver = MaVERiCSolver(
         graph=graph,
         budget=budget,
         topk_counterfactual=8,
         delta_support_to_root=0.8,
+        tool_costs=tool_costs,
     )
 
     final_ext, verdict = set(), False
@@ -562,6 +580,8 @@ def run_maveric_on_sample(
     try:
         final_ext, verdict = solver.run()
         predicted_label = None if verdict is None else bool(verdict)
+        if getattr(solver, "verify_error", False):
+            predicted_label = None
     except Exception as e:
         predicted_label = None
         final_ext = set()
@@ -615,6 +635,7 @@ def main() -> None:
     parser.add_argument("--cache_dir", type=str, default="cache")
     parser.add_argument("--use_graph_cache", action="store_true", help="Use DebateGraph-v1 cache if present")
     parser.add_argument("--append_cache_on_miss", action="store_true", help="Append graph to cache if missing")
+    parser.add_argument("--tool_costs", type=str, default="", help="JSON string to override tool costs")
 
     args = parser.parse_args()
 
@@ -636,6 +657,14 @@ def main() -> None:
     print("=" * 70)
 
     samples = load_dataset_by_name(args.dataset, max_samples=args.max_samples)
+
+    tool_costs = None
+    if args.tool_costs:
+        try:
+            tool_costs = json.loads(args.tool_costs)
+        except Exception:
+            print("⚠️ Invalid --tool_costs JSON; ignoring override")
+            tool_costs = None
     if not samples:
         print("ERROR: No samples loaded!")
         sys.exit(1)
@@ -656,12 +685,14 @@ def main() -> None:
             append_cache_on_miss=bool(args.append_cache_on_miss),
             graph_cache_path=graph_cache_path,
             verbose=bool(args.verbose),
+            tool_costs=tool_costs,
         )
         results.append(result)
 
-        correct_so_far = sum(1 for r in results if bool(r.get("correct")))
-        accuracy_so_far = correct_so_far / max(1, len(results))
-        print(f"  Accuracy so far: {accuracy_so_far:.2%} ({correct_so_far}/{len(results)})")
+        verified = [r for r in results if not r.get("unverified")]
+        correct_so_far = sum(1 for r in verified if bool(r.get("correct")))
+        accuracy_so_far = correct_so_far / max(1, len(verified))
+        print(f"  Accuracy so far: {accuracy_so_far:.2%} ({correct_so_far}/{len(verified)})")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_filename = f"{timestamp}_{args.method}_{args.dataset}.jsonl"
@@ -672,14 +703,15 @@ def main() -> None:
         for result in results:
             f.write(json.dumps(result, ensure_ascii=False) + "\n")
 
-    final_acc = sum(1 for r in results if bool(r.get("correct"))) / max(1, len(results))
+    verified = [r for r in results if not r.get("unverified")]
+    final_acc = sum(1 for r in verified if bool(r.get("correct"))) / max(1, len(verified))
 
     print("\n" + "=" * 70)
     print("Evaluation Complete!")
     print("=" * 70)
     print(f"Results saved to: {output_path}")
     print(f"\nFinal Accuracy: {final_acc:.2%}")
-    print(f"Total samples: {len(results)}")
+    print(f"Total samples: {len(results)} (verified: {len(verified)})")
     print("\nRun summarize.py to generate detailed metrics:")
     print(f"  python summarize.py {output_path}")
 

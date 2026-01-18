@@ -310,7 +310,10 @@ def explain_verdict(solver: MaVERiCSolver, root_id: str) -> str:
 
     # How verdict decided
     final_ext = set(g.get_grounded_extension(use_shield=True, alpha=solver.sgs_alpha))
-    if solver.y_direct is not None:
+    if getattr(solver, "verify_error", False):
+        verdict = None
+        lines.append("- Verification failed due to LLM/tool error -> ABSTAIN")
+    elif solver.y_direct is not None:
         lines.append(f"- Root was VERIFIED directly => y_direct={solver.y_direct}")
         verdict = bool(solver.y_direct)
     else:
@@ -356,7 +359,10 @@ def explain_verdict(solver: MaVERiCSolver, root_id: str) -> str:
 
     # Heuristic reasoning summary
     lines.append("")
-    if verdict:
+    if verdict is None:
+        lines.append("Why ABSTAIN (intuitive):")
+        lines.append("  - Tooling/LLM verification failed, so the solver avoided asserting a verdict.")
+    elif verdict:
         lines.append("Why ACCEPT (intuitive):")
         if direct_attackers:
             defeated = []
@@ -373,7 +379,7 @@ def explain_verdict(solver: MaVERiCSolver, root_id: str) -> str:
         vt = [s for s in direct_supporters if _node_status(g, s) == "VERIFIED(True)"]
         lines.append(f"  - Verified-true direct supporters: {vt if vt else '<none>'}")
         lines.append("  - In grounded semantics, a claim tends to be accepted when it is defended against attacks and/or supported by accepted/verified claims.")
-    else:
+    elif verdict is False:
         lines.append("Why REJECT / NOT-ACCEPT (intuitive):")
         if direct_attackers:
             strong_attackers = []
@@ -498,13 +504,18 @@ def run_maveric_verbose(
             print(f"  Action: REFINE topology after TRUE node {best_node.id}")
             solver._refine_topology_after_true(best_node.id)
         else:
-            print("  Action: verification skipped (budget?) -> stop.")
+            if getattr(solver, "verify_error", False):
+                print("  Action: verification failed (LLM/tool error) -> stop.")
+            else:
+                print("  Action: verification skipped (budget?) -> stop.")
             break
 
         print_graph_snapshot(g, title=f"Graph after STEP {step}")
 
     final_ext = set(g.get_grounded_extension(use_shield=True, alpha=solver.sgs_alpha))
-    if solver.y_direct is not None:
+    if getattr(solver, "verify_error", False):
+        verdict = None
+    elif solver.y_direct is not None:
         verdict = bool(solver.y_direct)
     else:
         verdict = bool(solver.root_id in final_ext) if solver.root_id else False
@@ -513,7 +524,8 @@ def run_maveric_verbose(
     print(f"Budget left: {solver.budget:.2f}")
     print(f"Tool calls: {solver.tool_calls}")
     print(f"Final SGS extension: {sorted(final_ext)}")
-    print(f"Verdict (root accepted?): {verdict} (y_direct={solver.y_direct})")
+    verdict_label = "ABSTAIN" if verdict is None else str(verdict)
+    print(f"Verdict (root accepted?): {verdict_label} (y_direct={solver.y_direct})")
     print("Recent solver.logs tail:")
     print(_tail(getattr(solver, "logs", []), n=30))
     print("==============================================")

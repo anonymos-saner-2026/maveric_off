@@ -4,7 +4,7 @@ from openai import OpenAI
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-SERPER_API_KEY = os.getenv("SERPER_API_KEY")
+SERPER_API_KEY = "2b1a411ce765bc5bd2c3614074df79f17ac16807"
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.yescale.io/v1")
 
 # Models configuration

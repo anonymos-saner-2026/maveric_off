@@ -174,7 +174,11 @@ def main():
             # Oracle Verify
             oracle_graph = copy.deepcopy(base_graph)
             for n in oracle_graph.nodes.values():
-                n.ground_truth = RealToolkit.verify_claim("AUTO", n.content)
+                gt = RealToolkit.verify_claim("AUTO", n.content)
+                if gt is None:
+                    n.ground_truth = None
+                    break
+                n.ground_truth = gt
                 if not n.ground_truth:
                     oracle_graph.remove_node(n.id)
             

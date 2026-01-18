@@ -340,7 +340,7 @@ def main() -> None:
 
             original = {
                 "question": q,
-                "truth_statement": t_stmt,l
+                "truth_statement": t_stmt,
                 "false_statement": f_stmt,
             }
 

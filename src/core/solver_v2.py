@@ -83,9 +83,10 @@ class MaVERiCSolver:
         self.budget = float(budget)
 
         self.tool_calls = 0
-        self.logs: List[str] = []
-
+        self.y_direct = None
         self.flagged_adversaries = set()
+        self.verify_error = False
+
         self.root_id: Optional[str] = None
         self.y_direct: Optional[bool] = None
 
@@ -107,6 +108,7 @@ class MaVERiCSolver:
 
         # caches
         self._tool_cache: Dict[str, str] = {}  # node_id -> tool
+        self.logs: List[str] = []
 
     # --------------------------
     # Logging
@@ -231,11 +233,13 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             if looks_math or looks_sqrt or looks_leap:
                 tool = "PYTHON_EXEC"
             else:
-                if node.id in self._tool_cache:
-                    tool = self._tool_cache[node.id]
+                node_id = getattr(node, "id", None)
+                if node_id and node_id in self._tool_cache:
+                    tool = self._tool_cache[node_id]
                 else:
                     tool = self._decide_tool_strategy(node.content)
-                    self._tool_cache[node.id] = tool
+                    if node_id:
+                        self._tool_cache[node_id] = tool
 
         node_cost = getattr(node, "verification_cost", None)
         if node_cost is not None and float(node_cost) > 0:
@@ -415,7 +419,9 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
         scored = []
         for n in active_nodes:
-            nid = n.id
+            nid = getattr(n, "id", None)
+            if not nid:
+                continue
             tool, cost = self._get_tool_and_cost(n)
             cost = max(cost, 1e-9)
 
@@ -444,8 +450,9 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 continue
 
             temp_g = copy.deepcopy(self.graph)
-            if node.id in temp_g.nx_graph:
-                temp_g.remove_node(node.id)
+            node_id = getattr(node, "id", None)
+            if node_id and node_id in temp_g.nx_graph:
+                temp_g.remove_node(node_id)
                 new_ext_set = set(temp_g.get_grounded_extension())
             else:
                 new_ext_set = set(current_ext_set)
@@ -587,14 +594,19 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
     # --------------------------
     # Verification
     # --------------------------
-    def _verify_node(self, node, tool: str, cost: float) -> bool:
+    def _verify_node(self, node, tool: str, cost: float) -> Optional[bool]:
         if not self._spend(cost):
-            return False
+            return None
 
         self.tool_calls += 1
         node.is_verified = True
 
         is_true = RealToolkit.verify_claim(tool_type=tool, claim=node.content)
+        if is_true is None:
+            node.ground_truth = None
+            self.verify_error = True
+            return None
+
         node.ground_truth = bool(is_true)
         return bool(is_true)
 
@@ -614,7 +626,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         while self.budget > 0:
             active = [
                 n for n in self.graph.nodes.values()
-                if (not n.is_verified) and (n.id in self.graph.nx_graph)
+                if (not n.is_verified) and (getattr(n, "id", None) in self.graph.nx_graph)
             ]
             if not active:
                 break
@@ -639,6 +651,8 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             if self.root_id and best_node_id and best_node_id == self.root_id:
                 self.y_direct = is_true
 
+            if is_true is None:
+                break
             if not is_true:
                 if best_node_id:
                     self._prune_node(best_node_id)
@@ -648,7 +662,10 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
         final_ext = set(self.graph.get_grounded_extension())
 
-        if self.y_direct is not None:
+        evidence_used = self.tool_calls > 0
+        if not evidence_used:
+            verdict = None
+        elif self.y_direct is not None:
             verdict = bool(self.y_direct)
         else:
             verdict = bool(self.root_id in final_ext) if self.root_id else False
@@ -677,11 +694,11 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         while self.budget > 0:
             active = [
                 n for n in self.graph.nodes.values()
-                if (not n.is_verified) and (n.id in self.graph.nx_graph)
+                if (not n.is_verified) and (getattr(n, "id", None) in self.graph.nx_graph)
             ]
             if not active:
-                yield self._add_log("ℹ️ Strategic verification complete (no active nodes).")
                 break
+
 
             try:
                 pagerank_scores = nx.pagerank(self.graph.nx_graph, alpha=0.85)
@@ -713,6 +730,9 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             if self.root_id and best_node_id and best_node_id == self.root_id:
                 self.y_direct = is_true
 
+            if is_true is None:
+                yield self._add_log("ℹ️ Verification error; stopping run.")
+                break
             if not is_true:
                 impacted = (
                     list(self.graph.nx_graph.successors(best_node_id))

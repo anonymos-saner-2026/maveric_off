@@ -326,7 +326,8 @@ def _chat_json(messages: List[Dict[str, str]]) -> Dict[str, Any]:
         temperature=0.0,
         response_format={"type": "json_object"},
     )
-    return json.loads(res.choices[0].message.content)
+    raw = res.choices[0].message.content or "{}"
+    return json.loads(raw)
 
 
 # -----------------------------

@@ -7,6 +7,7 @@
 import math
 import sys
 import traceback
+from typing import Optional
 
 # ---------------------------
 # Imports with fallbacks
@@ -83,7 +84,7 @@ class FakeRealToolkit:
         FakeRealToolkit.calls_verify_support = []
 
     @staticmethod
-    def verify_claim(tool_type: str, claim: str) -> bool:
+    def verify_claim(tool_type: str, claim: str) -> Optional[bool]:
         FakeRealToolkit.calls_verify_claim.append((tool_type, claim))
         # default: if not specified, return True
         return bool(FakeRealToolkit.claim_truth.get(claim, True))

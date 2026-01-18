@@ -42,7 +42,7 @@ class ClaimCase:
 @dataclass
 class CaseResult:
     case: ClaimCase
-    pred: bool
+    pred: Optional[bool]
     confidence: float  # captured from RealToolkit cache if available, else 1.0/0.0
     ok: bool
     latency_s: float
@@ -244,8 +244,9 @@ def run_case_v2(case: ClaimCase, quiet: bool = True) -> CaseResult:
     
     try:
         # 1. Run verification
-        pred = bool(RealToolkit.verify_claim(case.tool, case.claim))
-        
+        pred_raw = RealToolkit.verify_claim(case.tool, case.claim)
+        pred = bool(pred_raw) if pred_raw is not None else None
+
         # 2. Try to fetch confidence from cache (white-box peek)
         # Key format: verify||TOOL||claim
         # For bool-compat interface, cache stores bool.
@@ -253,15 +254,15 @@ def run_case_v2(case: ClaimCase, quiet: bool = True) -> CaseResult:
         # Actually in the patch: verify_claim calls internal logic which stores bool in cache.
         # Ideally we'd modify RealToolkit to expose rich result, but for V2 benchmark we might just rely on verdict.
         # Let's default confidence to 1.0 if True, 0.0 if False (hard verification).
-        confidence = 1.0 if pred else 0.0
-        
+        confidence = 0.5 if pred is None else (1.0 if pred else 0.0)
+
     except Exception as e:
-        pred = True # Fail-open policy
+        pred = None
         confidence = 0.5
         err = str(e)
 
     dt = time.time() - t0
-    ok = (pred == case.gold)
+    ok = (pred == case.gold) if pred is not None else False
     
     if not quiet:
         print(f"[{case.id}] {case.claim[:60]}... -> pred={pred} (gold={case.gold}) {dt:.2f}s")
@@ -277,6 +278,8 @@ def compute_calibration(results: List[CaseResult]) -> Dict[str, float]:
     
     squared_errors = []
     for r in results:
+        if r.pred is None:
+            continue
         target = 1.0 if r.case.gold else 0.0
         # If model says TRUE (pred=True), confidence is high (say 0.9).
         # If model says FALSE (pred=False), confidence of "being True" is low (say 0.1).

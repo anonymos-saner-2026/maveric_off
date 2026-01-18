@@ -3,6 +3,7 @@
 # Deterministic (seeded), no real API calls.
 
 import random
+from typing import Optional
 import sys
 import traceback
 from copy import deepcopy
@@ -71,7 +72,7 @@ class FakeRealToolkit:
         FakeRealToolkit.calls_verify_support = 0
 
     @staticmethod
-    def verify_claim(tool_type: str, claim: str) -> bool:
+    def verify_claim(tool_type: str, claim: str) -> Optional[bool]:
         FakeRealToolkit.calls_verify_claim += 1
         return bool(FakeRealToolkit.claim_truth.get(claim, True))
 

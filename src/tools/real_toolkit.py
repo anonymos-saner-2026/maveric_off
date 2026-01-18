@@ -217,7 +217,8 @@ class PythonSandbox:
                 return output_buffer.getvalue().strip()
             return "[Error]: Code executed but returned no result."
         except Exception as e:
-            return f"[Runtime Error]: {str(e)}"
+            print(f"      ⚠️ Python execution error: {e}")
+            return "[Error]: Python execution failed."
 
 
 # -----------------------------
@@ -225,6 +226,7 @@ class PythonSandbox:
 # -----------------------------
 class RealToolkit:
     _cache: Dict[str, Any] = {}
+    _llm_error_flag: bool = False
 
     # ---------- Tuning knobs ----------
     # Gate TRUE more strictly than FALSE, because false-positives are dangerous for pruning/acceptance.
@@ -236,173 +238,7 @@ class RealToolkit:
 
     # For edge prune: only prune when "FALSE" with very high confidence
     EDGE_PRUNE_FALSE_CONF = 0.80
-
-    # ---------- Cache helpers ----------
-    @staticmethod
-    def _cache_key(prefix: str, *parts: str) -> str:
-        joined = "||".join([prefix] + [p.strip() for p in parts])
-        return joined[:2000]
-
-    # ---------- Deterministic tier0 helpers ----------
-    @staticmethod
-    def _normalize_polarity(text: str) -> Tuple[str, bool]:
-        if not text:
-            return "", False
-        s = text.strip().lower()
-        s = s.replace("isn't", "is not").replace("wasn't", "was not")
-
-        neg = False
-        if " is not " in s:
-            neg = True
-            s = s.replace(" is not ", " is ")
-        if " was not " in s:
-            neg = True
-            s = s.replace(" was not ", " was ")
-        if " does not equal " in s:
-            neg = True
-            s = s.replace(" does not equal ", " equals ")
-        if " not a leap year" in s:
-            neg = True
-            s = s.replace(" not a leap year", " a leap year")
-
-        return s, neg
-
-    @staticmethod
-    def _deterministic_tier0(text: str) -> Optional[bool]:
-        s_norm, neg = RealToolkit._normalize_polarity(text)
-
-        # Leap year
-        m = re.search(r"\b(\d{4})\b.*\bleap year\b", s_norm)
-        if m:
-            y = int(m.group(1))
-            ok = (y % 4 == 0) and ((y % 100 != 0) or (y % 400 == 0))
-            return (not ok) if neg else ok
-
-        # sqrt
-        m = re.search(r"square root of\s+(-?\d+)\s+is\s+(-?\d+)", s_norm)
-        if m:
-            a = int(m.group(1))
-            b = int(m.group(2))
-            ok = False if a < 0 else (b * b == a)
-            return (not ok) if neg else ok
-
-        # arithmetic
-        m = re.search(r"(-?\d+)\s*([\+\-\*\/])\s*(-?\d+)\s*(?:equals|=)\s*(-?\d+)", s_norm)
-        if m:
-            x = int(m.group(1))
-            op = m.group(2)
-            y = int(m.group(3))
-            z = int(m.group(4))
-            if op == "+":
-                val = x + y
-                ok = (val == z)
-                return (not ok) if neg else ok
-            if op == "-":
-                val = x - y
-                ok = (val == z)
-                return (not ok) if neg else ok
-            if op == "*":
-                val = x * y
-                ok = (val == z)
-                return (not ok) if neg else ok
-            # division
-            if y == 0:
-                ok = False
-                return (not ok) if neg else ok
-            val = x / y
-            ok = abs(val - z) < 1e-9
-            return (not ok) if neg else ok
-
-        # percent
-        m = re.search(
-            r"(-?\d+(?:\.\d+)?)\s*%?\s*(?:percent)?\s*of\s*(-?\d+(?:\.\d+)?)\s*(?:equals|=|is)\s*(-?\d+(?:\.\d+)?)",
-            s_norm,
-        )
-        if m:
-            p = float(m.group(1))
-            base = float(m.group(2))
-            ans = float(m.group(3))
-            val = (p / 100.0) * base
-            ok = abs(val - ans) < 1e-9
-            return (not ok) if neg else ok
-
-        # comparisons
-        m = re.search(r"(-?\d+(?:\.\d+)?)\s*(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)", s_norm)
-        if m:
-            a = float(m.group(1))
-            op = m.group(2)
-            b = float(m.group(3))
-            if op == ">":
-                ok = a > b
-            elif op == "<":
-                ok = a < b
-            elif op == ">=":
-                ok = a >= b
-            else:
-                ok = a <= b
-            return (not ok) if neg else ok
-
-        m = re.search(
-            r"(-?\d+(?:\.\d+)?)\s+is\s+(greater than|less than|at least|at most)\s+(-?\d+(?:\.\d+)?)",
-            s_norm,
-        )
-        if m:
-            a = float(m.group(1))
-            rel = m.group(2)
-            b = float(m.group(3))
-            if rel == "greater than":
-                ok = a > b
-            elif rel == "less than":
-                ok = a < b
-            elif rel == "at least":
-                ok = a >= b
-            else:
-                ok = a <= b
-            return (not ok) if neg else ok
-
-        return None
-
-    @staticmethod
-    def _eval_propositional(text: str) -> Optional[bool]:
-        """
-        Evaluate simple propositional logic statements.
-        Examples:
-         - "If A is True and B is False, then (A and B) is False."
-         - "It is false that 2+2=4."
-        """
-        s = (text or "").lower().strip()
-
-        m = re.search(
-            r'if\s+(\w+)\s+is\s+(true|false)\s+and\s+(\w+)\s+is\s+(true|false)\s*,?\s*then\s+\((.*?)\)\s+is\s+(true|false)',
-            s,
-        )
-        if m:
-            var1, val1_str, var2, val2_str, expr, expected_str = m.groups()
-            val1 = (val1_str == "true")
-            val2 = (val2_str == "true")
-            expected = (expected_str == "true")
-            expr_norm = expr.strip()
-
-            result = None
-            if f"{var1} and {var2}" in expr_norm:
-                result = val1 and val2
-            elif f"{var1} or {var2}" in expr_norm:
-                result = val1 or val2
-            elif f"not {var1}" in expr_norm:
-                result = not val1
-            elif f"not {var2}" in expr_norm:
-                result = not val2
-
-            if result is not None:
-                return result == expected
-
-        if "it is false that" in s:
-            if "2 + 2 equals 5" in s or "2+2=5" in s:
-                return True
-            if "2 + 2 equals 4" in s or "2+2=4" in s:
-                return False
-
-        return None
+    ATTACK_TRUE_MIN_CONF = 0.5
 
     @staticmethod
     def _detect_sanity_family(text: str) -> Optional[str]:
@@ -474,6 +310,216 @@ class RealToolkit:
             if got is None or got != expected:
                 return False
         return True
+
+    # ---------- Deterministic tier ----------
+    @staticmethod
+    def _deterministic_tier0(text: str) -> Optional[bool]:
+        if not text:
+            return None
+        s = text.strip().lower()
+        s = re.sub(r"(?<=\d),(?=\d)", "", s)
+        tol = 1e-6
+        approx = bool(re.search(r"\b(about|around|approximately|approx)\b", s))
+        if approx:
+            tol = 1e-2
+
+        # Leap year check
+        m = re.search(r"(\d{4}).*leap year", s)
+        if m:
+            year = int(m.group(1))
+            is_leap = (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)
+            if "not" in s or "isn't" in s or "is not" in s:
+                return not is_leap
+            return is_leap
+
+        # Square root
+        m = re.search(r"square root of\s+(\d+(?:\.\d+)?)\s+is\s+(\d+(?:\.\d+)?)", s)
+        if m:
+            a = float(m.group(1))
+            b = float(m.group(2))
+            ok = abs((a ** 0.5) - b) <= tol
+            if "not" in s or "isn't" in s or "is not" in s:
+                return not ok
+            return ok
+
+        # Percent variants
+        m = re.search(
+            r"(\d+(?:\.\d+)?)\s*%?\s*percent of\s*(\d+(?:\.\d+)?)\s*(?:equals|is|=)\s*(\d+(?:\.\d+)?)",
+            s,
+        )
+        if m:
+            p = float(m.group(1))
+            total = float(m.group(2))
+            target = float(m.group(3))
+            ok = abs((p / 100.0) * total - target) <= tol
+            if "not" in s or "isn't" in s or "is not" in s:
+                return not ok
+            return ok
+
+        m = re.search(
+            r"(\d+(?:\.\d+)?)\s*%?\s*of\s*(\d+(?:\.\d+)?)\s*(?:is|equals|=)\s*(\d+(?:\.\d+)?)",
+            s,
+        )
+        if m:
+            p = float(m.group(1))
+            total = float(m.group(2))
+            target = float(m.group(3))
+            ok = abs((p / 100.0) * total - target) <= tol
+            if "not" in s or "isn't" in s or "is not" in s:
+                return not ok
+            return ok
+
+        m = re.search(
+            r"(\d+(?:\.\d+)?)\s+is\s+(\d+(?:\.\d+)?)\s*%?\s*of\s+(\d+(?:\.\d+)?)",
+            s,
+        )
+        if m:
+            target = float(m.group(1))
+            p = float(m.group(2))
+            total = float(m.group(3))
+            ok = abs((p / 100.0) * total - target) <= tol
+            if "not" in s or "isn't" in s or "is not" in s:
+                return not ok
+            return ok
+
+        # Arithmetic (a op b = c)
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s*([\+\-\*\/])\s*(-?\d+(?:\.\d+)?)\s*(?:equals|=)\s*(-?\d+(?:\.\d+)?)", s)
+        if m:
+            a = float(m.group(1))
+            op = m.group(2)
+            b = float(m.group(3))
+            c = float(m.group(4))
+            if op == "+":
+                res = a + b
+            elif op == "-":
+                res = a - b
+            elif op == "*":
+                res = a * b
+            else:
+                if b == 0:
+                    return None
+                res = a / b
+            ok = abs(res - c) <= tol
+            if "not" in s or "isn't" in s or "is not" in s or "does not equal" in s:
+                return not ok
+            return ok
+
+        # Comparisons
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s*(>=|<=|>|<)\s*(-?\d+(?:\.\d+)?)", s)
+        if m:
+            a = float(m.group(1))
+            op = m.group(2)
+            b = float(m.group(3))
+            if op == ">":
+                return a > b
+            if op == "<":
+                return a < b
+            if op == ">=":
+                return a >= b
+            return a <= b
+
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s+is\s+at\s+least\s+(-?\d+(?:\.\d+)?)", s)
+        if m:
+            return float(m.group(1)) >= float(m.group(2))
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s+is\s+at\s+most\s+(-?\d+(?:\.\d+)?)", s)
+        if m:
+            return float(m.group(1)) <= float(m.group(2))
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s+is\s+greater\s+than\s+(-?\d+(?:\.\d+)?)", s)
+        if m:
+            return float(m.group(1)) > float(m.group(2))
+        m = re.search(r"(-?\d+(?:\.\d+)?)\s+is\s+less\s+than\s+(-?\d+(?:\.\d+)?)", s)
+        if m:
+            return float(m.group(1)) < float(m.group(2))
+
+        # Range checks
+        m = re.search(r"between\s+(-?\d+(?:\.\d+)?)\s+and\s+(-?\d+(?:\.\d+)?)", s)
+        if m:
+            lo = float(m.group(1))
+            hi = float(m.group(2))
+            if "is" in s:
+                m2 = re.search(r"is\s+(-?\d+(?:\.\d+)?)", s)
+                if m2:
+                    x = float(m2.group(1))
+                    return lo <= x <= hi
+
+        return None
+
+    @staticmethod
+    def _eval_propositional(text: str) -> Optional[bool]:
+        s = (text or "").strip().lower()
+        if "if" not in s and "implies" not in s and "therefore" not in s:
+            return None
+
+        if "then" in s:
+            parts = s.split("then", 1)
+            lhs = parts[0].replace("if", "").strip()
+            rhs = parts[1].strip() if len(parts) == 2 else ""
+        elif "implies" in s:
+            parts = s.split("implies", 1)
+            lhs = parts[0].strip()
+            rhs = parts[1].strip() if len(parts) == 2 else ""
+        else:
+            return None
+
+        def _parse_bool_expr(t: str) -> Optional[bool]:
+            tokens = t.replace("(", " ").replace(")", " ").split()
+            if not tokens:
+                return None
+
+            def atom(tok: str) -> Optional[bool]:
+                if tok in ("true", "t"):
+                    return True
+                if tok in ("false", "f"):
+                    return False
+                return None
+
+            stack: List[Optional[bool]] = []
+            op_stack: List[str] = []
+
+            i = 0
+            while i < len(tokens):
+                tok = tokens[i]
+                if tok == "not":
+                    i += 1
+                    if i < len(tokens):
+                        val = atom(tokens[i])
+                        if val is None:
+                            return None
+                        stack.append(not val)
+                    else:
+                        return None
+                elif tok in ("and", "or"):
+                    op_stack.append(tok)
+                else:
+                    val = atom(tok)
+                    if val is None:
+                        return None
+                    stack.append(val)
+                i += 1
+
+            if not stack:
+                return None
+            result = stack[0]
+            for idx, op in enumerate(op_stack, start=1):
+                if idx >= len(stack):
+                    break
+                if op == "and":
+                    result = bool(result and stack[idx])
+                else:
+                    result = bool(result or stack[idx])
+            return result
+
+        a = _parse_bool_expr(lhs)
+        b = _parse_bool_expr(rhs)
+        if a is None or b is None:
+            return None
+        return (not a) or b
+
+    # ---------- Cache helpers ----------
+    @staticmethod
+    def _cache_key(prefix: str, *parts: str) -> str:
+        clean = [prefix] + [str(p).strip().lower() for p in parts if p is not None]
+        return "::".join(clean)
 
     # ---------- LLM codegen for PYTHON_EXEC ----------
     @staticmethod
@@ -623,56 +669,52 @@ Output only the rewritten factual claim (no quotes).
     @staticmethod
     def _make_queries(clean_fact: str) -> List[List[str]]:
         """
-        Build query rounds with temporal awareness and entity extraction.
-        Round1: Entity-focused + year filter if present
-        Round2: Encyclopedia sources
-        Round3: Authoritative sources (edu/gov)
+        Build query rounds with hybrid strategy.
+        Round1: full claim + keyword query + optional myth/fact-check
+        Round2: encyclopedia sources
+        Round3: authoritative sources
         """
         s = (clean_fact or "").strip()
         if not s:
             return [[clean_fact]]
 
-        # Extract entities and years
         entities = RealToolkit._extract_entities(clean_fact)
         years = RealToolkit._extract_years(clean_fact)
 
-        # Stopwords for keyword extraction
         stopwords = {
             "discussion", "conversation", "topic", "claim", "about", "therefore",
             "usually", "often", "because", "most", "people", "that", "this",
             "with", "from", "were", "have", "been", "being", "would", "could",
             "should", "which", "there", "their", "they", "what", "when", "where",
         }
-
-        # Extract meaningful keywords (prioritize longer words)
         kws = re.findall(r"[A-Za-z]{4,}", clean_fact)
         kws = [w.lower() for w in kws if w.lower() not in stopwords]
         kws = sorted(set(kws), key=lambda x: (-len(x), x))[:6]
 
-        # Build base query with entities prioritized
         entity_str = " ".join(entities[:3]) if entities else ""
         kw_str = " ".join(kws[:5])
         base_q = f"{entity_str} {kw_str}".strip() if entity_str else kw_str
         base_q = base_q if len(base_q) >= 8 else s[:120]
 
-        # Add year context if present
         year_suffix = f" {years[0]}" if years else ""
+        myth_cues = ["myth", "hoax", "rumor", "does", "what happens", "is it true", "debunk", "fact check"]
+        is_myth = any(cue in s.lower() for cue in myth_cues)
 
-        # Round 1: Core queries with temporal context
         r1 = [
+            s[:200],
             f"{base_q}{year_suffix}",
-            f"{base_q} facts",
         ]
-        if entities:
-            r1.append(f"{entities[0]} {kws[0] if kws else ''}")
+        if is_myth:
+            r1.append(f"{base_q} myth")
+            r1.append(f"{base_q} fact check")
+        else:
+            r1.append(f"{base_q} facts")
 
-        # Round 2: Encyclopedia with year filter
         r2 = [
             f"site:wikipedia.org {base_q}",
             f"site:britannica.com {entities[0] if entities else base_q}",
         ]
 
-        # Round 3: Authoritative sources
         r3 = [
             f"site:.edu {base_q}",
             f"site:.gov {base_q}",
@@ -1641,8 +1683,17 @@ Output only the rewritten factual claim (no quotes).
         trusted_hits = [h for h in (hits or []) if _is_trusted_domain(h.get("url", ""))]
         if not trusted_hits:
             return None, "weak"
+        if len(trusted_hits) < 2 and not RealToolkit._is_hoaxy_claim(clean_fact):
+            return None, "weak"
 
-        blob = " ".join([(h.get("title", "") + " " + h.get("snippet", "")) for h in trusted_hits])
+        # Weighted blob by source quality
+        weighted_parts = []
+        for h in trusted_hits:
+            url = h.get("url", "")
+            weight = 1.0 if _is_trusted_domain(url) else 0.5
+            snippet = (h.get("title", "") + " " + h.get("snippet", ""))
+            weighted_parts.append((snippet + " ") * int(max(1, round(weight))))
+        blob = " ".join(weighted_parts)
         blob_n = _norm_text(blob)
 
         # Compute stance intensities
@@ -1770,14 +1821,14 @@ Output only the rewritten factual claim (no quotes).
     @staticmethod
     def _llm_common_sense_vote(clean_fact: str) -> Optional[bool]:
         prompt = f"""
-You are a careful fact checker.
-Decide whether the statement is TRUE or FALSE using ONLY widely-known knowledge.
-If you are not highly confident, output 'ABSTAIN'.
+ You are a careful fact checker.
+ Decide whether the statement is TRUE or FALSE using ONLY widely-known knowledge.
+ If you are not highly confident, output 'ABSTAIN'.
 
-Statement: "{clean_fact}"
+ Statement: "{clean_fact}"
 
-Reply with ONLY one of: TRUE, FALSE, ABSTAIN.
-"""
+ Reply with ONLY one of: TRUE, FALSE, ABSTAIN.
+ """
         try:
             res = client.chat.completions.create(
                 model=JUDGE_MODEL,
@@ -1793,7 +1844,9 @@ Reply with ONLY one of: TRUE, FALSE, ABSTAIN.
                 return False
             return None
         except Exception:
+            RealToolkit._llm_error_flag = True
             return None
+
 
     @staticmethod
     def _llm_rag_judge_raw(clean_fact: str, evidence_lines: str) -> Tuple[Optional[bool], float, List[int], List[int], str]:
@@ -1870,6 +1923,7 @@ Reply with ONLY one of: TRUE, FALSE, ABSTAIN.
                 return False, conf, sup_i, ref_i, rat
             return None, conf, sup_i, ref_i, rat
         except Exception:
+            RealToolkit._llm_error_flag = True
             return None, 0.0, [], [], "Judge error"
 
 
@@ -1934,6 +1988,7 @@ Output STRICT JSON with keys:
                 return False, conf, rat
             return None, conf, rat
         except Exception:
+            RealToolkit._llm_error_flag = True
             return None, 0.0, "Semantic judge error"
 
 
@@ -2081,6 +2136,16 @@ Output STRICT JSON with keys:
         Returns (label, confidence) where label in {"TRUE","FALSE","ABSTAIN"}.
         Note: This confidence is self-reported; we use it only for pruning when confident FALSE.
         """
+        a_txt = _norm_text(statement_a)
+        b_txt = _norm_text(statement_b)
+        a_tokens = set(re.findall(r"[a-z]{3,}", a_txt))
+        b_tokens = set(re.findall(r"[a-z]{3,}", b_txt))
+        overlap = len(a_tokens & b_tokens) / max(1, min(len(a_tokens), len(b_tokens)))
+
+        # Pre-filter for unrelated statements
+        if overlap < 0.2:
+            return "FALSE", 0.6 if mode == "ATTACK" else 0.5
+
         if mode == "ATTACK":
             question = "Does A logically invalidate, contradict, or provide a counter-argument to B?"
             rules = """
@@ -2141,15 +2206,18 @@ Output STRICT JSON:
         """
         Compatibility bool:
           - Return False ONLY when we are confident it is NOT an attack (to prune).
-          - Return True otherwise (keep edge).
+          - Return True only when we are confident it IS an attack.
+          - Otherwise return False to avoid false-positive attacks.
         """
         key = RealToolkit._cache_key("attack3", attacker, target)
         if key in RealToolkit._cache:
             return RealToolkit._cache[key]
 
         label, conf = RealToolkit._llm_relation_judge(attacker, target, mode="ATTACK")
-        out = True
-        if label == "FALSE" and conf >= RealToolkit.EDGE_PRUNE_FALSE_CONF:
+        out = False
+        if label == "TRUE" and conf >= RealToolkit.ATTACK_TRUE_MIN_CONF:
+            out = True
+        elif label == "FALSE" and conf >= RealToolkit.EDGE_PRUNE_FALSE_CONF:
             out = False
 
         RealToolkit._cache[key] = out
@@ -2185,6 +2253,13 @@ Output STRICT JSON:
         entities = RealToolkit._extract_entities(fact)
         entity_hits = sum(1 for e in entities if _norm_text(e) in blob_n)
 
+        aliases = []
+        for ent in entities:
+            parts = ent.split()
+            if len(parts) >= 2:
+                aliases.extend([parts[0], parts[-1]])
+        alias_hits = sum(1 for a in aliases if _norm_text(a) in blob_n)
+
         # Keywords
         stopwords = {"because", "therefore", "usually", "often", "about", "would", "could", "should"}
         terms = re.findall(r"[a-zA-Z]{5,}", (fact or "").lower())
@@ -2196,8 +2271,8 @@ Output STRICT JSON:
         term_hits = sum(1 for t in terms if t in blob_n)
 
         # Entities are more important: if at least 1 entity found, lower threshold
-        if entity_hits >= 1:
-            return term_hits >= max(1, int(0.3 * len(terms)))
+        if entity_hits + alias_hits >= 1:
+            return term_hits >= max(1, int(0.3 * len(terms))) or entity_hits >= 1
 
         # Standard threshold
         return term_hits >= max(2, int(0.4 * len(terms)))
@@ -2226,19 +2301,14 @@ Output STRICT JSON:
 
     @staticmethod
     def _llm_suggest_queries(clean_fact: str) -> List[str]:
-        key = RealToolkit._cache_key("suggestq", clean_fact)
+        key = f"qs::{_norm_text(clean_fact)}"
         if key in RealToolkit._cache:
             return RealToolkit._cache[key]
 
         q_prompt = f"""
-Generate 4 short web search queries to verify this factual claim.
-Queries must focus on the subject and predicate, not restating the claim verbatim.
-Avoid meta words like "discussion", "conversation", "topic".
-
-Claim: "{clean_fact}"
-
-Output as strict JSON:
-{{"queries":["...","...","...","..."]}}
+Given a statement, suggest 3-5 concise web search queries to verify it.
+Return JSON: {{"queries": [..]}}.
+Statement: {clean_fact}
 """
         out: List[str] = []
         try:
@@ -2253,18 +2323,21 @@ Output as strict JSON:
                 if isinstance(qs, list):
                     out = [str(x).strip() for x in qs if isinstance(x, str) and str(x).strip()]
         except Exception:
+            RealToolkit._llm_error_flag = True
             out = []
 
         out = out[:4]
         RealToolkit._cache[key] = out
         return out
 
+
     # ---------- Main claim verification ----------
     @staticmethod
-    def verify_claim(tool_type: str, claim: str) -> bool:
+    def verify_claim(tool_type: str, claim: str) -> Optional[bool]:
         display_claim = (claim or "")[:80].replace("\n", " ")
         print(f"      🕵️ [Processing]: '{display_claim}...' via {tool_type}")
 
+        RealToolkit._llm_error_flag = False
         cache_key = f"verify||{tool_type}||{(claim or '').strip()}"
         if cache_key in RealToolkit._cache:
             return RealToolkit._cache[cache_key]
@@ -2494,6 +2567,11 @@ Output as strict JSON:
                                 final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
                                 final = bool(final_vote) if final_vote is not None else False
 
+                if RealToolkit._llm_error_flag:
+                    RealToolkit._cache[cache_key] = None
+                    print("        └─ ⚠️ Final Result: ABSTAIN (LLM error)")
+                    return None
+
                 RealToolkit._cache[cache_key] = bool(final)
                 status_icon = "✅" if final else "❌"
                 print(f"        └─ {status_icon} Final Result: {'TRUE' if final else 'FALSE'}")
@@ -2520,7 +2598,7 @@ Verdict:
             return verdict
 
         except Exception as e:
+            RealToolkit._llm_error_flag = True
             print(f"      ⚠️ Verification Error: {e}")
-            # On tool failure, do NOT prune aggressively: keep claim as TRUE to avoid collapsing graph
-            RealToolkit._cache[cache_key] = True
-            return True
+            RealToolkit._cache[cache_key] = None
+            return None

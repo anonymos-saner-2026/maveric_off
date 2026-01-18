@@ -697,6 +697,11 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
         node.is_verified = True
         is_true = RealToolkit.verify_claim(tool_type=tool, claim=node.content)
+        if is_true is None:
+            node.ground_truth = None
+            self.verify_error = True
+            return None
+
         node.ground_truth = bool(is_true)
 
         if node.ground_truth is True:
@@ -718,6 +723,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         self.logs = []
         self.flagged_adversaries = set()
         self.y_direct = None
+        self.verify_error = False
         self._tool_cache = {}
 
         self.verified_true_ids = set()

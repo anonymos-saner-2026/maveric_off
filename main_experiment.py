@@ -209,7 +209,8 @@ def oracle_verify_claim(claim: str) -> bool:
         if c in oracle_cache:
             return oracle_cache[c]
 
-    y = bool(RealToolkit.verify_claim(ORACLE_VERIFY_TOOL, c))
+    y_raw = RealToolkit.verify_claim(ORACLE_VERIFY_TOOL, c)
+    y = bool(y_raw) if y_raw is not None else False
 
     with oracle_lock:
         oracle_cache[c] = y
