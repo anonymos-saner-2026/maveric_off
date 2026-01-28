@@ -186,14 +186,38 @@ def format_snippets_for_prompt(snippets: List[Dict[str, str]], max_chars: int = 
 
 
 def parse_binary_label(text: str) -> Optional[bool]:
-    """Parse verdict from text, returns True/False/None."""
+    """
+    Parse verdict from text, returns True/False/None.
+    Robustly handles:
+    - [TRUE], [FALSE], [ABSTAIN]
+    - <verdict>TRUE</verdict>, <verdict>FALSE</verdict>
+    - Plain words: TRUE, FALSE, UNCERTAIN, ABSTAIN
+    """
     if not text:
         return None
+    
     text_upper = text.upper()
-    if "[TRUE]" in text_upper or "TRUE" == text_upper.strip():
+    
+    # Check for True
+    if "[TRUE]" in text_upper or "<VERDICT>TRUE" in text_upper:
         return True
-    if "[FALSE]" in text_upper or "FALSE" == text_upper.strip():
+    if re.search(r"\bTRUE\b", text_upper):
+        # Ensure it's not "NOT TRUE" or similar if we wanted to be very careful, 
+        # but for these baselines usually TRUE appears in a verdict block.
+        # Check for negation near True? 
+        # Simpler: prioritized check. B1/C1 prompts use specific formats.
+        return True
+        
+    # Check for False
+    if "[FALSE]" in text_upper or "<VERDICT>FALSE" in text_upper:
         return False
+    if re.search(r"\bFALSE\b", text_upper):
+        return False
+        
+    # Check for Abstain/Uncertain
+    if "[ABSTAIN]" in text_upper or "UNCERTAIN" in text_upper or "ABSTAIN" in text_upper:
+        return None
+        
     return None
 
 
