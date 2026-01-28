@@ -1,122 +1,207 @@
-# MaVERiC (Multi-Agent Verification & Reasoning in Context)
+# MaVERiC (Multi-Agent Verification and Reasoning in Context)
 
-MaVERiC is a research prototype for **robust multi-agent debate and verification**. It orchestrates a team of AI agents to debate complex topics, parses their arguments into a structured **Argumentation Graph**, and uses a dedicated **Solver** (MaVERiC) to verify claims and determine the truth.
+MaVERiC is a research prototype for robust multi-agent debate and verification.
+It generates debates, parses them into an argumentation graph, and verifies claims
+under a tool budget using a graph-aware solver. The repository also includes a
+suite of baseline families for fair comparisons.
 
-The system is designed to simulate adversarial environments where misinformation ("Team Myth") attempts to overwhelm the truth ("Team Truth"), and uses graph-based reasoning (SGS: Semantics-based Graph Summary) + ROI-based tool usage to verify facts efficiently under a budget.
+## Quick Start
 
-## 🚀 Key Features
-
-*   **7-Agent Debate System**: Simulates realistic debates with specialized personas (e.g., "The Fact-Checker", "The Fabricator", "The Accommodator").
-*   **Argumentation Graph**: Parses debates into atomic claim nodes connected by `SUPPORT` or `ATTACK` relations.
-*   **MaVERiC Solver**:
-    *   **SGS (Semantics-based Graph Summary)**: Computes grounded extensions to identify accepted arguments.
-    *   **ROI-driven Verification**: Optimizes tool usage (Web Search, Python) based on *Return on Investment* to verify the most critical nodes first.
-    *   **Topology Refinement**: Prunes invalid edges (e.g., attacks on verified truths) to maintain graph consistency.
-*   **Tool Integration**:
-    *   **Google Search** (via Serper): For open-domain fact-checking.
-    *   **Python Execution**: For deterministic logic (math, dates).
-    *   **LLM Judges**: For semantic verification and "common sense" checks.
-
-## 📦 Installation
-
-### Prerequisites
-*   Python 3.9+
-*   `pip` or `conda`
-
-### Setup
-
-1.  **Clone the repository** (if applicable):
-    ```bash
-    git clone https://github.com/anonymos-saner-2026/maveric_off.git
-    cd maveric_off
-    ```
-
-2.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
-    *Note: If `requirements.txt` is missing, core dependencies are: `openai`, `networkx`, `pandas`, `tqdm`, `matplotlib`, `seaborn`, `python-dotenv`, `requests`.*
-
-3.  **Configuration**:
-    Create a `.env` file in the root directory with your API keys:
-    ```env
-    OPENAI_API_KEY=sk-...
-    SERPER_API_KEY=...    # For Google Search tool
-    OPENAI_BASE_URL=...   # Optional, defaults to https://api.yescale.io/v1 or standard OpenAI
-    ```
-
-## 🛠 Usage
-
-### 1. Run the Main Experiment
-To run the full pipeline (Debate -> Parse -> Verify) on a set of built-in topics:
+1) Install dependencies
 
 ```bash
-python main_experiment.py
+pip install -r requirements.txt
 ```
 
-**What happens:**
-*   Generates a debate for each topic (configured in `main_experiment.py`).
-*   Parses the debate into a graph.
-*   Runs multiple solvers (`MAD`, `Random`, `CRITIC`, `MaVERiC`) for comparison.
-*   Saves outputs to `runs/` (CSV results, plots, logs).
+2) Configure API keys in `.env`
 
-### 2. Run the Mini Workflow (Quick Demo)
-For a single-topic demonstration of the MaVERiC solver's step-by-step verification logic:
+```env
+OPENAI_API_KEY=sk-...
+SERPER_API_KEY=...
+OPENAI_BASE_URL=...  # optional
+```
+
+3) Run evaluation
 
 ```bash
-python mini_workflow.py
+python experiments/p02_evaluation_harness/run_eval.py --dataset truthfulqa --budget 8 --max_samples 50 --baseline maveric
 ```
 
-### 3. Run Tests
-To verify the correctness of the toolkit and logic:
+## System Overview
+
+End-to-end pipeline:
+
+1) Debate generation: `src/agents/debater.py`
+2) Graph parsing: `src/agents/parser.py`
+3) Verification + refinement: `src/core/solver.py`
+4) Evaluation harness: `experiments/p02_evaluation_harness/run_eval.py`
+
+### Debate generation (agents)
+
+`src/agents/debater.py` produces a 7-agent debate with configurable liar/truther ratio.
+Roles are defined in `src/config.py` under `AGENTS_PROFILES`.
+
+### Parsing into a graph
+
+`src/agents/parser.py` converts the debate into an `ArgumentationGraph`:
+
+- Stage A1: LLM parse of candidate arguments (no relations)
+- Stage A2: atomic split to ensure one claim per node
+- Stage A3: relation extraction (attack/support)
+- Stage B: self-refine loop with edge-only patch ops
+- Stage C: deterministic guardrails and relevance checks
+
+Graph structure is defined in `src/core/graph.py`.
+Edges are typed as `attack` or `support`.
+
+### Verification tools
+
+`src/tools/real_toolkit.py` implements retrieval, Python verification, and a calibrated
+RAG judge for claim verification. It is the shared tool layer for MaVERiC and most baselines.
+
+### MaVERiC solver
+
+`src/core/solver.py` implements the main ROI-driven solver. Key components:
+
+- Verification state `tau(v)` stored on nodes
+- Root detection with attack-only centrality and optional LLM tiebreaker
+- ROI two-stage selection (proxy shortlist + counterfactual impact)
+- SGS grounded extension with evidence gating
+- Topology refinement after verifications
+
+Important solver settings (default):
+
+- `topk_counterfactual=25`
+- `sgs_require_evidence=True`
+- `rho_proxy=0.6`, `gamma_struct=0.8`
+- `delta_root=1.5`, `delta_adv=0.5`, `delta_support_to_root=0.5`
+
+## Baselines
+
+Baselines live under `src/baselines/` and follow the same tool budget model.
+
+### Class B (linear tool use)
+
+`src/baselines/linear_tool.py`
+
+- B1 ReActBaseline
+- B2 RAGAnswerBaseline
+- B3 RAGVerifierBaseline
+- B4 SelfAskBaseline
+
+### Class C (verification-heavy)
+
+`src/baselines/verification_heavy.py`
+
+- C1 BudgetedCRITICBaseline
+- C2 VerifyAndReviseBaseline
+- C3 RARRBaseline
+
+### Class D (selector ablations, share MaVERiC refinement)
+
+`src/baselines/selector_ablation.py`
+
+- D1 RandomSelector + refine
+- D2 UncertaintySelector + refine
+- D3 CentralitySelector + refine (pagerank/degree/betweenness)
+- D4 DistanceToRootSelector + refine
+- D5 ProxyOnlySelector + refine
+
+### Class E (multi-agent verification families)
+
+`src/baselines/class_e.py`
+
+- E1 MAVBaseline (multi-aspect verifiers)
+- E2 BoNMAVBaseline (best-of-n + MAV)
+- E3 MADFactBaseline (multi-juror debate per claim)
+- E4 GKMADBaseline (guided debate + advisor + final verifier)
+
+Defaults used in Class E:
+
+- E1 MAV: `num_verifiers=5`, `max_claims=10`
+- E2 BoN-MAV: `n=5`, `m_verifiers=5`, `top_k=4`
+- E3 MAD-Fact: `num_jurors=3`, `rounds=2`, `max_claims=8`
+- E4 GKMAD: `rounds=2`
+
+Notes:
+- For Class E, metrics are exposed via `baseline.stats` and returned in `run_eval` as `baseline_metrics`.
+- Budget is applied to tool calls only (LLM generation is not budgeted by default).
+
+## Evaluation Harness
+
+`experiments/p02_evaluation_harness/run_eval.py` loads datasets, builds graphs, and
+executes the chosen baseline. It supports TruthfulQA pairwise evaluation.
+
+Example:
+
 ```bash
-python test_correctness_toolkit.py
+python experiments/p02_evaluation_harness/run_eval.py \
+  --dataset truthfulqa \
+  --budget 8 \
+  --max_samples 50 \
+  --baseline maveric
 ```
 
-## 📂 Project Structure
+Supported `--baseline` values:
 
-```
-├── main_experiment.py       # Entry point for batch experiments
-├── mini_workflow.py         # Single-topic demo script
-├── test_correctness_toolkit.py # Unit tests for toolkit logic
-├── src/
-│   ├── agents/
-│   │   ├── debater.py       # LLM Agent debate generation
-│   │   └── parser.py        # Parses text -> Argumentation Graph
-│   ├── core/
-│   │   ├── solver.py        # MaVERiC Solver logic (ROI, SGS)
-│   │   ├── graph.py         # ArgumentationGraph data structure
-│   │   └── baselines.py     # Baseline solvers (MAD, CRITIC, Random)
-│   ├── tools/
-│   │   └── real_toolkit.py  # Wrapper for Web Search, Python, & LLM Judges
-│   └── config.py            # Global configuration (keys, models, profiles)
-└── runs/                    # Output directory for logs and results
+- `maveric`
+- `d1_random`, `d2_uncertainty`, `d3_pagerank`, `d3_degree`, `d3_betweenness`, `d4_distance`, `d5_proxy`
+- `e1_mav`, `e2_bon_mav`, `e3_mad_fact`, `e4_gkmad`
+
+Tool cost override:
+
+```bash
+--tool_costs '{"WEB_SEARCH": 5.0, "PYTHON_EXEC": 8.0, "COMMON_SENSE": 1.0}'
 ```
 
-## 🧠 Solvers Overview
+Outputs:
 
-*   **MaVERiC**: The core proposed method. Uses graph semantics (SGS) to identify the "Grounded Extension" (accepted arguments) and uses an ROI function to select the most impactful nodes to verify with external tools interactively.
-*   **MAD (Maximum Arbitrary Degree)**: A baseline that selects the "truth" based on simple majority voting (node degree).
-*   **CRITIC**: Verification based on LLM self-critique/feedback without graph topology.
-*   **Random**: Randomly selects nodes to verify (baseline).
+- Results: `results/<timestamp>_<method>_<dataset>.jsonl`
+- Summary: `results/<timestamp>_<method>_<dataset>_summary.txt`
 
-## 📎 Appendix: Class E Baselines (Defaults)
+## Budgeting and Metrics
 
-The following defaults are used for Class E baselines (MAV, BoN-MAV, MAD-Fact, GKMAD):
+Tools and default costs are configured in `src/config.py` and `src/core/solver.py`.
+The evaluation harness records:
 
-- **E1 MAV (Multi-Agent Verification)**
-  - `num_verifiers=5`, `max_claims=10`
-  - Budget split across verifiers; if split falls below tool cost, all budget is assigned to one verifier.
-- **E2 BoN-MAV (Best-of-n + MAV)**
-  - `n=5`, `m_verifiers=5`, `top_k=4`
-  - Stage 1 self-critic filters candidates; Stage 2 runs MAV on each top-k with equal budget share.
-- **E3 MAD-Fact**
-  - `num_jurors=3`, `rounds=2`, `max_claims=8`
-  - Budget split across claims; per-claim tools used at most once per round.
-- **E4 GKMAD**
-  - `rounds=2`
-  - Guided debate with advisor + final verifier; tool usage is budgeted per round and at final step.
+- Budget used/left
+- Tool call counts
+- Refinement stats (for graph-based solvers)
+- Runtime per sample
 
-## ⚠️ Notes
-*   **Costs**: Running experiments uses LLM tokens (OpenAI) and Search API credits (Serper). Check `src/config.py` and `TOOL_COSTS` in `src/core/solver.py` for cost estimates.
-*   **Determinism**: Python execution is sandboxed but relies on `exec()`. Review `src/tools/real_toolkit.py` for security boundaries.
+Class E baselines include additional metrics in `baseline_metrics`:
+
+- claims_count
+- tool_calls_per_claim
+- budget_spent_per_claim
+- budget_utilization
+
+## Tests
+
+Run baseline tests:
+
+```bash
+pytest tests/test_class_c_baselines.py
+pytest tests/test_class_e_baselines.py
+```
+
+Note: Class E tests call the real LLM client when configured; they are skipped if
+`OPENAI_API_KEY` is missing.
+
+## Project Layout
+
+```
+src/
+  agents/                 # debate generation and parsing
+  baselines/              # baseline families
+  core/                   # graph + solver
+  tools/                  # retrieval, python exec, judge
+experiments/              # evaluation harness
+tests/                    # unit tests
+```
+
+## Practical Tips
+
+- Use `--use_graph_cache` for large runs to save parsing time.
+- For smoke tests, lower `--max_samples` and budget.
+- Class E baselines are compute-heavy; reduce rounds or jurors when sanity testing.
