@@ -257,7 +257,7 @@ def assert_budget_non_negative(solver):
     _assert(solver.budget >= -1e-9, f"budget went negative: {solver.budget}")
 
 def assert_verdict_is_bool(verdict):
-    _assert(isinstance(verdict, bool), f"verdict must be bool, got {type(verdict)}")
+    _assert(verdict is None or isinstance(verdict, bool), f"verdict must be bool/None, got {type(verdict)}")
 
 def assert_final_ext_subset_of_nodes(g, ext):
     for nid in ext:

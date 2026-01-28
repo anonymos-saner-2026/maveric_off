@@ -1,0 +1,802 @@
+[
+  {
+    "id": "dc94e844-719c-449c-9295-a1443f4355a2",
+    "claim": "Route 611 (Afghanistan) is not 100 kilometers and does not pass through the town that is found in the valley of the primary watershed for Sistan Basin.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Sangin",
+        1
+      ],
+      [
+        "Helmand River",
+        0
+      ],
+      [
+        "Route 611 (Afghanistan)",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "1facff80-a5f3-43eb-ba5b-b8da8b541293",
+    "claim": "New Wave was later enhanced by this Russian superstar whose career started in 1965.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "New Wave (competition)",
+        0
+      ],
+      [
+        "Alla Pugacheva",
+        0
+      ],
+      [
+        "Alla Pugacheva",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "e6d335d8-3c6d-4cfd-979b-2b874994c919",
+    "claim": "One of the hosts of the 2012 KBS Drama Awards is a Korean actor. He is well known for his role in a 2016 South Korean television soap opera, and starred alongside Han Hyo-joo. Kim Eui-sung also appeared in this series.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Lee Jong-suk",
+        0
+      ],
+      [
+        "Lee Jong-suk",
+        2
+      ],
+      [
+        "W (TV series)",
+        0
+      ],
+      [
+        "2012 KBS Drama Awards",
+        1
+      ],
+      [
+        "Kim Eui-sung",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "f80d8f66-ba64-496c-8919-9162d548b547",
+    "claim": "The German actress who starred in \"Warm Bodies\" and \"Cut Bank\" made her film debut in the year 2006.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Cut Bank (film)",
+        0
+      ],
+      [
+        "Cut Bank (film)",
+        1
+      ],
+      [
+        "Teresa Palmer",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "da2c15e3-de53-44e3-9a99-a68000aeb3de",
+    "claim": "Locked On and Tom Clancy have the media novel in common.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Locked On (novel)",
+        0
+      ],
+      [
+        "Tom Clancy",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "3c379a75-e3fc-4974-8a91-0571c68224aa",
+    "claim": "Don Johnson, born in 1943, was an actor in Miami Vice. He also starred in a movie with Peter Maloney in 1980.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Revenge of the Stepford Wives",
+        1
+      ],
+      [
+        "Don Johnson",
+        1
+      ],
+      [
+        "Peter Maloney (actor)",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "de83f8f0-eaaf-4c7b-b287-cd9605320977",
+    "claim": "Oregon Portage Railroad ran to this area. The area is located farther West than the body of water which The Breakers (hotel) is beside .",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Cascade Locks and Canal",
+        0
+      ],
+      [
+        "Lake Worth Lagoon",
+        0
+      ],
+      [
+        "Oregon Portage Railroad",
+        3
+      ],
+      [
+        "The Breakers (hotel)",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "c364f0f1-5970-4c72-a7f9-1d2012713d57",
+    "claim": "The president of South Korea was born 24 January 1953. The group that Vietnam-born Euh Yoon-Dae was Chairman of lies under his direct control.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Presidential Council on Nation Branding, Korea",
+        1
+      ],
+      [
+        "Moon Jae-in",
+        0
+      ],
+      [
+        "Euh Yoon-dae",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "dd3d0e98-903a-4406-841c-5eb0f6ad7930",
+    "claim": "The 357th Fighter Squadron (357 FS) is part of the 355th Fighter Wing at Davis-Monthan Air Force Base, Arizona. It operates Fairchild Republic A-10 Thunderbolt II and was first used in 1969.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "357th Fighter Squadron",
+        1
+      ],
+      [
+        "Fairchild Republic A-10 Thunderbolt II",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "63a54157-8d73-43d0-ba0d-3f052dbf0e00",
+    "claim": "The Ghana Club 100 is the name of the yearly official list of the top 100 Companies in Ghana which was first put together in 1998 by the Government of Ghana agency established to encourage, promote and facilitate investments in all sectors of the economy of Ghana.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Ghana Club 100",
+        0
+      ],
+      [
+        "Ghana Club 100",
+        1
+      ],
+      [
+        "Ghana Investment Promotion Centre",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "4e01baef-d2a3-4290-ab80-0b67a0f97c02",
+    "claim": "The mass transit system Metreon, devised by Lexicon Branding, turned out to be an 85 million dollar project.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Lexicon Branding",
+        2
+      ],
+      [
+        "Metreon",
+        3
+      ]
+    ]
+  },
+  {
+    "id": "22a97342-b0a1-4613-bd26-15985e4c234c",
+    "claim": "The founder of the record label that Terrence Dixon released music on attended  school in Belleville.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Metroplex (record label)",
+        0
+      ],
+      [
+        "Juan Atkins",
+        2
+      ],
+      [
+        "Terrence Dixon",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "b2ef9897-ae34-46f4-a344-242248f14826",
+    "claim": "Operation Diadem came before the conflict where Dave Schreiner was mortally wounded.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Battle of Okinawa",
+        0
+      ],
+      [
+        "Operation Diadem",
+        0
+      ],
+      [
+        "Dave Schreiner",
+        3
+      ]
+    ]
+  },
+  {
+    "id": "f3dfa151-9217-43b6-abd2-e73a733720d1",
+    "claim": "The player Alloysius Agu was cover for in the 1994 FIFA World Cup was the goalkeeper that participated in a football game for a documentary movie premiere. The movie was the first movie aggregated on the CREETIQ website.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "A Trip to Jamaica",
+        0
+      ],
+      [
+        "A Trip to Jamaica",
+        3
+      ],
+      [
+        "Peter Rufai",
+        0
+      ],
+      [
+        "CREETIQ",
+        3
+      ],
+      [
+        "Alloysius Agu",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "16246cbf-406b-46a1-98a3-730a25d40903",
+    "claim": "Logan Lerman starred in the 2017 drama, Sidney Hall, directed by Shawn Christensen.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Logan Lerman",
+        3
+      ],
+      [
+        "Sidney Hall (film)",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "839538f1-25eb-4bd5-8248-3de1b356d84a",
+    "claim": "\"You're My Number One\" was the fourth and final single from this punk rock band. A member of that band and Biff Byford are not both American singers.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Stacey McClean",
+        0
+      ],
+      [
+        "Biff Byford",
+        0
+      ],
+      [
+        "S Club 8",
+        1
+      ],
+      [
+        "You're My Number One",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "9e1595f5-e343-4a6e-aac3-fc83519dfc98",
+    "claim": "This woman directed Goodbye First Love. She won the Silver Bear for Best Director for a historical film staring Isabelle Huppert.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Mia Hansen-Løve",
+        2
+      ],
+      [
+        "Things to Come (2016 film)",
+        1
+      ],
+      [
+        "Goodbye First Love",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "3cfa66ec-92ca-4b99-a3bd-0f10665ea018",
+    "claim": "A particular band is still together, but the band who released The Audio Of Being as their final album is not. This particular band had a worldwide tour called the \"Oh! Gravity. Tour\" in 2007.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Matthew Good Band",
+        0
+      ],
+      [
+        "Switchfoot",
+        0
+      ],
+      [
+        "The Audio of Being",
+        0
+      ],
+      [
+        "Oh! Gravity. Tour",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "91a33108-a6ff-4e9d-ac6e-eb667a183d20",
+    "claim": "An actress starred in a 2016 film where Jongnic Bontemps was the music director. She is known for her role in the 2008 British-German-British science fiction action thriller Death Race.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Natalie Martinez",
+        0
+      ],
+      [
+        "Natalie Martinez",
+        1
+      ],
+      [
+        "Death Race (film)",
+        0
+      ],
+      [
+        "The Land (2016 film)",
+        1
+      ],
+      [
+        "Jongnic Bontemps",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "f0b1446b-a8b2-46fe-9f27-84b85c80fe00",
+    "claim": "The trainer, who named Eddie Mahan \"the greatest football player of all time\", coached the Indians and was the first Native American to win a gold metal in his home country.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Eagle Feather",
+        2
+      ],
+      [
+        "Jim Thorpe",
+        1
+      ],
+      [
+        "Eddie Mahan",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "a06e4396-293d-4ab8-8c1a-bde1064e41ad",
+    "claim": "Zhongyang County is under the administration of this city. That city has a larger population than Fuxin.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Lüliang",
+        0
+      ],
+      [
+        "Lüliang",
+        1
+      ],
+      [
+        "Lüliang",
+        2
+      ],
+      [
+        "Fuxin",
+        1
+      ],
+      [
+        "Zhongyang County",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "e7aa5b51-9188-4afc-8050-19a5c061e49c",
+    "claim": "Sarah Kate Ellis  is an American media executive, most widely known for launching and turning around media brands within magazines. The British fashion and lifestyle publication, for whom Rachel Egglestone-Evans is editor, and one of the magazines Sarah Kate Ellis has worked with are not both US-based magazines.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Vintage Life",
+        0
+      ],
+      [
+        "InStyle",
+        0
+      ],
+      [
+        "Rachel Egglestone-Evans",
+        0
+      ],
+      [
+        "Sarah Kate Ellis",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "656ae56c-ddd9-4bae-82d6-9641c0ad6354",
+    "claim": "The NFL football team that plays its home matches in New York that Nevil McCaskill played for is the Buffalo Bills.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Nevin McCaskill",
+        1
+      ],
+      [
+        "Buffalo Bills",
+        3
+      ]
+    ]
+  },
+  {
+    "id": "0c2e531a-1de6-4642-9870-904e5194c675",
+    "claim": "Rob is an American sitcom that starred the American actress Guadalupe \"Lupe\" Ontiveros who was best known for portraying Yolanda Saldivar in the film Selena.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Rob (TV series)",
+        0
+      ],
+      [
+        "Rob (TV series)",
+        1
+      ],
+      [
+        "Rob (TV series)",
+        2
+      ],
+      [
+        "Lupe Ontiveros",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "55e4e516-b2d3-4199-b200-f15bc3cb8701",
+    "claim": "Dennis Gansel is not from America. Neither is the director of action adventure film \"I Believed in You\".",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Irving Cummings",
+        0
+      ],
+      [
+        "Dennis Gansel",
+        0
+      ],
+      [
+        "I Believed in You",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "8eca6967-637e-43c8-b603-2d8744d32fed",
+    "claim": "The show, for which Larry D. Mann voiced the character of Yukon Cornelius, aired earlier than a Charlie Brown show about a festive season. \"A Kidnapped Santa Claus\" is a short story with the theme of this festive season.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Rudolph the Red-Nosed Reindeer (TV special)",
+        0
+      ],
+      [
+        "Rudolph the Red-Nosed Reindeer (TV special)",
+        1
+      ],
+      [
+        "Rudolph the Red-Nosed Reindeer (TV special)",
+        2
+      ],
+      [
+        "A Charlie Brown Christmas",
+        1
+      ],
+      [
+        "Larry D. Mann",
+        1
+      ],
+      [
+        "A Kidnapped Santa Claus",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "b8861009-2692-4902-a45d-9f0826aee4de",
+    "claim": "This alternative band is an American nu-metal band that was formed before this Pennsylvania alternative metal band, whose fourth studio album is named Carver City. This band recorded the 1983 song Gone Daddy Gone.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "CKY (band)",
+        1
+      ],
+      [
+        "Violent Femmes",
+        0
+      ],
+      [
+        "Carver City",
+        0
+      ],
+      [
+        "Gone Daddy Gone",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "6845025a-8296-4e56-a4c4-aafed835d412",
+    "claim": "A man was the winner of the 2002 King of the Ring tournament. This man is a professional wrestler who is also a football player.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Cain Velasquez",
+        1
+      ],
+      [
+        "Brock Lesnar",
+        0
+      ],
+      [
+        "King of the Ring (2006)",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "13a49508-54d0-4981-abd4-c464b91bb55e",
+    "claim": "The Sewanhaka Central High School District is composed of Sewanhaka High School, Elmont Memorial High School, New Hyde Park Memorial High School, Floral Park Memorial High School, and one other. That other school serves students in the census-designated place of Nassau County in New York.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "H. Frank Carey Junior-Senior High School",
+        0
+      ],
+      [
+        "Garden City South, New York",
+        0
+      ],
+      [
+        "Sewanhaka Central High School District",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "9c092b3b-6159-40ea-92b8-dc116ea3af56",
+    "claim": "The 2012 Spengler Cup was held in Davos, Switzerland between 26 and 31 December 2012, and all matches were played at HC Davos' home known as Vaillant Arena, an arena in Davos, Switzerland.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "2012 Spengler Cup",
+        1
+      ],
+      [
+        "Vaillant Arena",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "d90634f0-6bbf-4408-9672-0ff80c448dd2",
+    "claim": "The director Jonathan Demme presented Made in Texas at a theater in the East Side Line, which featured work from the filmmaker known as Denis Kaufman. This filmmaker was influenced by Italian futurism in cinema.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Collective for Living Cinema",
+        0
+      ],
+      [
+        "Dziga Vertov",
+        0
+      ],
+      [
+        "Made in Texas",
+        0
+      ],
+      [
+        "Italian futurism in cinema",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "a5221504-5400-4372-8b51-52f502cb4a0e",
+    "claim": "Night's Dark Terror is an adventure module co-written by a Manchester game designer. This game designer has contributed to the single-player role-playing gamebook, the series that Eye of the Dragon is part of.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Jim Bambra",
+        1
+      ],
+      [
+        "Fighting Fantasy",
+        0
+      ],
+      [
+        "Night's Dark Terror",
+        0
+      ],
+      [
+        "Eye of the Dragon",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "2eedbcac-37c0-413c-a9ef-dc0a0d77af98",
+    "claim": "Cannery Casino and Hotel is a seven stars locals casino in North Las Vegas, Nevada, USA, owned and operated by Boyd Gaming Corporation, which is an American gaming and hospitality company based in Paradise, Nevada.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Cannery Casino and Hotel",
+        0
+      ],
+      [
+        "Boyd Gaming",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "1b98dbd4-f9bd-489b-af35-2e4bd8955b9d",
+    "claim": "The defending champion in the 2009 ABN AMRO World Tennis Tournament – Singles of France, called \"the best volleyer on tour\", defeated Juan Martín del Potro an Dutch professional.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Michaël Llodra",
+        1
+      ],
+      [
+        "Juan Martín del Potro",
+        0
+      ],
+      [
+        "2009 ABN AMRO World Tennis Tournament – Singles",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "b79f5d75-7451-4707-bfa3-d9543d5c5b9d",
+    "claim": "The person the story behind Girl Crazy is credited to is older than a particular director. This director directed \"Edna, the Inebriate Woman\".",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Hampton Del Ruth",
+        0
+      ],
+      [
+        "Ted Kotcheff",
+        0
+      ],
+      [
+        "Girl Crazy (1929 film)",
+        1
+      ],
+      [
+        "Edna, the Inebriate Woman",
+        1
+      ]
+    ]
+  },
+  {
+    "id": "8674b993-7ad3-4a69-93eb-7329a6cac8b7",
+    "claim": "The team who has Kent Baer as the defensive coordinator plays its home games at Sam Boyd Stadium.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Kent Baer",
+        1
+      ],
+      [
+        "UNLV Rebels football",
+        3
+      ]
+    ]
+  },
+  {
+    "id": "bbbe39c0-7927-46a1-85bf-76476b218df9",
+    "claim": "The burial method that requires digging up skeletal remains and was the subject of a 2007 NBC documentary is an ossuary.",
+    "label": "REFUTED",
+    "evidence": [
+      [
+        "Jesus bloodline",
+        3
+      ],
+      [
+        "Ossuary",
+        0
+      ],
+      [
+        "Ossuary",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "0ec3d139-36a6-45c0-8d89-93a4e4e9c3e5",
+    "claim": "The genus Tricyrtis has more species than Leitneria.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Leitneria",
+        0
+      ],
+      [
+        "Tricyrtis",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "3bb65272-dd24-491c-ac8f-c91b41a38171",
+    "claim": "Iowa State Cyclones is a member of the Big 12 Conference and competes in NCAA Division I, fielding 16 varsity teams, and had an American college wrestling icon considered one of the best American amateur wrestlers in recent history.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Cael Sanderson",
+        2
+      ],
+      [
+        "Iowa State Cyclones",
+        0
+      ]
+    ]
+  },
+  {
+    "id": "ddad1c91-6a50-4170-b0e1-ec8e185164ae",
+    "claim": "Matt Miller (musician) plays bass in a band. This band and King Charles are not both from the same country.",
+    "label": "SUPPORTS",
+    "evidence": [
+      [
+        "Sparta (band)",
+        0
+      ],
+      [
+        "King Charles (musician)",
+        0
+      ],
+      [
+        "Matt Miller (musician)",
+        0
+      ]
+    ]
+  }
+]

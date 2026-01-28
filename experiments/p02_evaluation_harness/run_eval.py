@@ -34,6 +34,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
 
 from src.core.graph import ArgumentationGraph, ArgumentNode  # noqa: E402
 from src.core.solver import MaVERiCSolver  # noqa: E402
+from src.baselines.selector_ablation import (  # noqa: E402
+    D1RandomRefineSolver,
+    D2UncertaintyRefineSolver,
+    D3CentralityRefineSolver,
+    D4DistanceRefineSolver,
+    D5ProxyOnlyRefineSolver,
+)
 from dataset_loader import load_dataset_by_name  # noqa: E402
 
 from src.agents.debater import generate_debate  # noqa: E402
@@ -282,6 +289,84 @@ def _apply_tool_costs(graph: ArgumentationGraph, tool_costs: Optional[Dict[str, 
             node.verification_cost = float(tool_costs[tool])
 
 
+def _build_solver(
+    baseline: str,
+    graph: ArgumentationGraph,
+    budget: float,
+    tool_costs: Optional[Dict[str, float]] = None,
+):
+    key = str(baseline or "maveric").lower().strip()
+    if key in {"maveric", "default", ""}:
+        return MaVERiCSolver(
+            graph=graph,
+            budget=budget,
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+    if key in {"d1_random", "d1"}:
+        return D1RandomRefineSolver(
+            graph=graph,
+            budget=budget,
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+    if key in {"d2_uncertainty", "d2"}:
+        return D2UncertaintyRefineSolver(
+            graph=graph,
+            budget=budget,
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+    if key in {"d3_centrality", "d3", "d3_pagerank"}:
+        return D3CentralityRefineSolver(
+            graph=graph,
+            budget=budget,
+            kind="pagerank",
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+    if key in {"d3_degree"}:
+        return D3CentralityRefineSolver(
+            graph=graph,
+            budget=budget,
+            kind="degree",
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+    if key in {"d3_betweenness"}:
+        return D3CentralityRefineSolver(
+            graph=graph,
+            budget=budget,
+            kind="betweenness",
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+    if key in {"d4_distance", "d4"}:
+        return D4DistanceRefineSolver(
+            graph=graph,
+            budget=budget,
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+    if key in {"d5_proxy", "d5", "d5_proxy_only", "proxy_only"}:
+        return D5ProxyOnlyRefineSolver(
+            graph=graph,
+            budget=budget,
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
+
+    raise ValueError(f"Unknown baseline: {baseline}")
+
+
 def run_solver_on_statement(
     statement: str,
     statement_id: str,
@@ -294,6 +379,7 @@ def run_solver_on_statement(
     verbose: bool = False,
     pair_role: Optional[str] = None,
     tool_costs: Optional[Dict[str, float]] = None,
+    baseline: str = "maveric",
 ) -> Dict[str, Any]:
     if verbose:
         print(f"    🧩 Building graph for: {statement[:120]}... (id={statement_id})")
@@ -310,11 +396,10 @@ def run_solver_on_statement(
     )
     _apply_tool_costs(graph, tool_costs)
 
-    solver = MaVERiCSolver(
+    solver = _build_solver(
+        baseline=baseline,
         graph=graph,
         budget=budget,
-        topk_counterfactual=8,
-        delta_support_to_root=0.8,
         tool_costs=tool_costs,
     )
 
@@ -466,6 +551,7 @@ def run_maveric_on_sample(
     graph_cache_path: str,
     verbose: bool = False,
     tool_costs: Optional[Dict[str, float]] = None,
+    baseline: str = "maveric",
 ) -> Dict[str, Any]:
     sample_id = str(sample.get("id", "unknown"))
     ds = _safe_get_dataset_name(sample, dataset_name)
@@ -496,6 +582,7 @@ def run_maveric_on_sample(
             verbose=verbose,
             pair_role="truth",
             tool_costs=tool_costs,
+            baseline=baseline,
         )
         false_res = run_solver_on_statement(
             statement=false_stmt,
@@ -509,6 +596,7 @@ def run_maveric_on_sample(
             verbose=verbose,
             pair_role="false",
             tool_costs=tool_costs,
+            baseline=baseline,
         )
 
         predicted_label = truthfulqa_decide_pair_robust(truth_res, false_res)
@@ -522,6 +610,7 @@ def run_maveric_on_sample(
         return {
             "sample_id": sample_id,
             "dataset": ds,
+            "baseline": baseline,
             "claim": question,
             "truth_statement": truth_stmt,
             "false_statement": false_stmt,
@@ -566,11 +655,10 @@ def run_maveric_on_sample(
     )
     _apply_tool_costs(graph, tool_costs)
 
-    solver = MaVERiCSolver(
+    solver = _build_solver(
+        baseline=baseline,
         graph=graph,
         budget=budget,
-        topk_counterfactual=8,
-        delta_support_to_root=0.8,
         tool_costs=tool_costs,
     )
 
@@ -603,6 +691,7 @@ def run_maveric_on_sample(
     result = {
         "sample_id": sample_id,
         "dataset": ds,
+        "baseline": baseline,
         "claim": claim,
         "gold_label": gold_label,
         "predicted_label": predicted_label,
@@ -625,6 +714,15 @@ def run_maveric_on_sample(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run evaluation on MaVERiC")
     parser.add_argument("--method", type=str, default="maveric", help="Method name")
+    parser.add_argument(
+        "--baseline",
+        type=str,
+        default="maveric",
+        help=(
+            "Selector baseline: maveric, d1_random, d2_uncertainty, d3_pagerank, "
+            "d3_degree, d3_betweenness, d4_distance, d5_proxy"
+        ),
+    )
     parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--budget", type=float, default=10.0)
     parser.add_argument("--max_samples", type=int, default=50)
@@ -650,6 +748,7 @@ def main() -> None:
     print("MaVERiC Evaluation")
     print("=" * 70)
     print(f"Method: {args.method}")
+    print(f"Baseline: {args.baseline}")
     print(f"Dataset: {args.dataset}")
     print(f"Budget: {args.budget}")
     print(f"Max samples: {args.max_samples}")
@@ -686,6 +785,7 @@ def main() -> None:
             graph_cache_path=graph_cache_path,
             verbose=bool(args.verbose),
             tool_costs=tool_costs,
+            baseline=str(args.baseline),
         )
         results.append(result)
 

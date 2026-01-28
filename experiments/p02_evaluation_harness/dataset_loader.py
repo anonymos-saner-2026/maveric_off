@@ -244,14 +244,28 @@ def load_dataset_by_name(dataset_name: str, max_samples: Optional[int] = None) -
         return load_fever(max_samples=max_samples)
     if dataset_name == "copheme":
         return load_local_benchmark("copheme", "data/benchmarks_processed/copheme_labeled.json", max_samples)
+    if dataset_name == "copheme_nei_balanced":
+        return load_local_benchmark(
+            "copheme_nei_balanced",
+            "data/benchmarks_processed/copheme_nei_balanced.json",
+            max_samples,
+            label_map={"NOT ENOUGH INFO": True, "REFUTED": False, "SUPPORTS": True},
+        )
     if dataset_name == "hover":
         return load_local_benchmark("hover", "data/benchmarks_processed/hover_labeled.json", max_samples)
+    if dataset_name == "hover_balanced":
+        return load_local_benchmark("hover_balanced", "data/benchmarks_processed/hover_labeled_balanced.json", max_samples)
     if dataset_name == "scifact":
         return load_local_benchmark("scifact", "data/benchmarks_processed/scifact_labeled.json", max_samples)
 
     raise ValueError(f"Unknown dataset: {dataset_name}. Supported: truthfulqa, fever, copheme, hover, scifact")
 
-def load_local_benchmark(dataset_name: str, path: str, max_samples: Optional[int] = None) -> List[Dict[str, Any]]:
+def load_local_benchmark(
+    dataset_name: str,
+    path: str,
+    max_samples: Optional[int] = None,
+    label_map: Optional[Dict[str, Optional[bool]]] = None,
+) -> List[Dict[str, Any]]:
     print(f"Loading {dataset_name} from {path}...")
     samples = []
     if not os.path.exists(path):
@@ -261,18 +275,24 @@ def load_local_benchmark(dataset_name: str, path: str, max_samples: Optional[int
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
         
+    default_map = {
+        "SUPPORTS": True,
+        "REFUTED": False,
+        "REFUTES": False,
+    }
+    use_map = label_map or default_map
+
     for idx, item in enumerate(data):
         if max_samples and len(samples) >= max_samples:
             break
             
         # Map labels to boolean if possible
-        label_str = item.get("label", "").upper()
-        if label_str == "SUPPORTS":
-            label = True
-        elif label_str == "REFUTED" or label_str == "REFUTES":
-            label = False
-        else:
-            continue # Skip NEI or others
+        label_str = str(item.get("label", "")).upper()
+        if label_str not in use_map:
+            continue
+        label = use_map[label_str]
+        if label is None:
+            continue
             
         samples.append({
             "id": f"{dataset_name}_{item.get('id', idx)}",

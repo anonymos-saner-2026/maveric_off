@@ -1,0 +1,73 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: results/20260128_185625_maveric_copheme.jsonl
+Dataset: copheme
+Method: maveric
+Samples: 30 (verified: 30)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.5333 (16/30)
+Precision: 0.0000
+Recall:    0.0000
+F1:        0.0000
+
+Confusion Matrix:
+  TP:   0  FP:  14
+  FN:   0  TN:  16
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 3.54 ± 1.75
+Min Budget: 1.00
+Max Budget: 5.00
+
+Avg Tool Calls: 3.53 ± 1.75
+Total Tool Calls: 106
+
+Tool Call Breakdown:
+  TOTAL          :  106 (100.0%)
+
+Avg Runtime: 151.71s per sample
+Total Runtime: 4551.41s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 0.90 ± 0.87
+Avg Edges Removed (true refine): 0.27 ± 0.57
+Avg Edges Removed (false refine): 0.33 ± 0.75
+Avg Edges Removed (prune): 0.23 ± 0.67
+Avg SGS Size: 3.97 ± 2.80
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (14 errors)
+----------------------------------------------------------------------
+
+1. copheme_552993818816299008
+   Claim: Ahmed Merabet was the first victim of the Charlie Hebdo attack...
+   Predicted: True, Gold: False
+
+2. copheme_552984916070531072
+   Claim: Ahmed Merabet was the first victim of the Charlie Hebdo attack...
+   Predicted: True, Gold: False
+
+3. copheme_552991544731774976
+   Claim: Ahmed Merabet was the first victim of the Charlie Hebdo attack...
+   Predicted: True, Gold: False
+
+4. copheme_552982443511144448
+   Claim: Ahmed Merabet was the first victim of the Charlie Hebdo attack...
+   Predicted: True, Gold: False
+
+5. copheme_553493707472011264
+   Claim: Hostages have been taken (at a business) in Dammartin-en-Goele...
+   Predicted: True, Gold: False
+
+   ... and 9 more errors
+
+======================================================================

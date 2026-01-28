@@ -1,0 +1,73 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: /home/tungnvt5re/research-projects/reinforcement_learning_intro_books/maveric_ijcai/experiments/p02_evaluation_harness/results_comprehensive/20260128_195932_maveric_hover.jsonl
+Dataset: hover
+Method: maveric
+Samples: 30 (verified: 30)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.5667 (17/30)
+Precision: 0.7857
+Recall:    0.5238
+F1:        0.6286
+
+Confusion Matrix:
+  TP:  11  FP:   3
+  FN:  10  TN:   6
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 6.95 ± 1.15
+Min Budget: 4.00
+Max Budget: 8.00
+
+Avg Tool Calls: 6.40 ± 1.91
+Total Tool Calls: 192
+
+Tool Call Breakdown:
+  TOTAL          :  192 (100.0%)
+
+Avg Runtime: 171.82s per sample
+Total Runtime: 5154.71s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.70 ± 1.24
+Avg Edges Removed (true refine): 0.23 ± 0.56
+Avg Edges Removed (false refine): 0.57 ± 1.02
+Avg Edges Removed (prune): 1.43 ± 1.89
+Avg SGS Size: 6.87 ± 3.56
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (13 errors)
+----------------------------------------------------------------------
+
+1. hover_b07fde45-fda5-49ab-b845-4ad2c88d46c6
+   Claim: Skagen Painter, who painted the 1893 painting Roses, favored naturalism. Theodor...
+   Predicted: False, Gold: True
+
+2. hover_80ca66bd-2535-4ec3-8421-ad9dcbebf06d
+   Claim: Skagen Painter Peder Severin Krøyer favored naturalism along with Theodor Esbern...
+   Predicted: False, Gold: True
+
+3. hover_3be7b926-2b30-4130-86a1-3fccc4ee2655
+   Claim: Red, White & Crüe and this athlete both fight. The french fighter was trained by...
+   Predicted: True, Gold: False
+
+4. hover_e1e9cda2-49a1-4117-a5a7-974563c58676
+   Claim: Red, White & Crüe and Mike Tyson both fight....
+   Predicted: False, Gold: True
+
+5. hover_ef4c721f-0a92-4739-9e74-b5c7dba711a4
+   Claim: WWE Super Tuesday took place at an arena that currently goes by the name TD Gard...
+   Predicted: False, Gold: True
+
+   ... and 8 more errors
+
+======================================================================

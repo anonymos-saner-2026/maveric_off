@@ -1,0 +1,362 @@
+[
+  {
+    "id": "553558513210105856",
+    "claim": "There is a gunman/has been a shooting incident in Trocadero (police clearing the area)",
+    "original_text": "Update - French interior ministry says incident which led to evacuation of Trocadero near the Eiffel Tower in Paris was a false alarm",
+    "label": "REFUTED",
+    "topic": "charliehebdo",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "524941727753568257",
+    "claim": "Shooter is still on the loose",
+    "original_text": "We r being told it's still not safe outside downtown. Shooter on the loose. University of Ottawa shut down.",
+    "label": "NOT ENOUGH INFO",
+    "topic": "ottawashooting",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "500306187624407040",
+    "claim": "Ferguson police once beat up a man and charged him for bleeding on their uniforms",
+    "original_text": "The day #Ferguson cops beat a man and charged him with getting his blood on their uniforms http://t.co/P2mW9Nu8pB … http://t.co/6kBUzLXzFY",
+    "label": "NOT ENOUGH INFO",
+    "topic": "ferguson",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "581315281630318593",
+    "claim": "The co-pilot was a convert to Islam",
+    "original_text": "The co-pilot of the Germanwings Airbus was a convert to Islam and became Fidain! http://t.co/QR1iNWTXuh",
+    "label": "REFUTED",
+    "topic": "germanwings-crash",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "544280707800264704",
+    "claim": "The gunman is using a female hostage as a shield inside the cafe",
+    "original_text": "Customers in Sydney cafe taken hostage. Siege in center of city. Watch our friends @9NewsSyd http://t.co/5nsRovuHd1 http://t.co/ho5YDCIkac",
+    "label": "NOT ENOUGH INFO",
+    "topic": "sydneysiege",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "581300992194572288",
+    "claim": "The co-pilot was a convert to Islam",
+    "original_text": "MUSLIM CONVERT? A German news website, http://t.co/sZQQ0pKwM1 claims Andreas Lubitz was a Muslim convert http://t.co/nX2CXzgiJr",
+    "label": "REFUTED",
+    "topic": "germanwings-crash",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "552801880812691456",
+    "claim": "Stephane Charbonnier was critically injured in the Charlie Hebdo attack",
+    "original_text": "Cartoonist Stephane Charbonnier was critically injured in the attack (LeFigaro) #CharlieHebdo http://t.co/fHMfUmQffo",
+    "label": "REFUTED",
+    "topic": "charliehebdo",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "553572740125712385",
+    "claim": "Kosher supermarket gunman is asking for release of Charlie Hebdo suspects",
+    "original_text": "BREAKING NEWS: Market gunman threatens to kill hostages if police storm terrorist brothers. -Paris police",
+    "label": "NOT ENOUGH INFO",
+    "topic": "charliehebdo",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "576225987119198208",
+    "claim": "Putin is facing a \"palace coup\"",
+    "original_text": "#putindead #putin Can Putin's Absence Indicate A Palace Coup In Moscow? http://t.co/ImBuKEacO1 via @forbes",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "524947416869388288",
+    "claim": "A second shooting suspect has been shot",
+    "original_text": "Reports now that 2nd shooter has been shot in downtown Ottawa #ottnews",
+    "label": "REFUTED",
+    "topic": "ottawashooting",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "544285194815942657",
+    "claim": "There are 13 hostages inside the Sydney cafe",
+    "original_text": "13 hostages are being held in a Sydney store by apparent jihadist supporters http://t.co/XqhQB8SeyN",
+    "label": "REFUTED",
+    "topic": "sydneysiege",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "552978099357237248",
+    "claim": "Banksy drew a tribute to Charlie Hebdo featuring 3 red pencils",
+    "original_text": "Most compelling image I've seen to come out of horrifying events in Paris, courtesy of Banksy. #JeSuisCharlie http://t.co/EKBfbRR3HT",
+    "label": "REFUTED",
+    "topic": "charliehebdo",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "524949443607412737",
+    "claim": "There was a shooting incident near/at the Rideau Centre",
+    "original_text": "Ottawa Police report a third shooting at Rideau Centre, no reports of injuries.",
+    "label": "REFUTED",
+    "topic": "ottawashooting",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "553532980871053312",
+    "claim": "An armed man has taken a hostage in a kosher store in Paris (Porte de Vincennes)",
+    "original_text": "#BREAKING - Hostage taken at kosher shop in #Paris by ‘suspect in police officer shooting' https://t.co/4yt6nafpIg http://t.co/f9N8Bjn68I",
+    "label": "NOT ENOUGH INFO",
+    "topic": "charliehebdo",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "580353449721655296",
+    "claim": "There were 148 people onboard the Germanwings plane",
+    "original_text": "German Airbus A320 Plane Crashes, 148 People DEAD\nhttps://t.co/94oOOSSSVv\n#4U9525 #germanwings #GermanWingsCrash #Airbus320 #planecrash",
+    "label": "REFUTED",
+    "topic": "germanwings-crash",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "576824525339402240",
+    "claim": "Putin is facing a \"palace coup\"",
+    "original_text": "COUP IN THE KREMLIN? PUTIN'S ABSENCE FUELS RAMPANT SPECULATION #Russia #o4a #news - http://t.co/980aG8SIln http://t.co/RotadxvlZJ",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "576394422813769728",
+    "claim": "Putin is facing a \"palace coup\"",
+    "original_text": "Is this how a coup against Vladimir Putin might happen?\nhttp://t.co/KfX47MIk0p",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "544338575240609792",
+    "claim": "40-50 hostages are being held at cafe in Sydney (according to Lindt CEO)",
+    "original_text": "#BREAKING: Flag w/ Islamic writing held up to window of #Sydney cafe. Police say up to 50 hostages. #Australia PM convenes security team.",
+    "label": "REFUTED",
+    "topic": "sydneysiege",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "580357700791468032",
+    "claim": "A distress/mayday/SOS call was sent from the airplane before the crash",
+    "original_text": "The #Germanwings #A320 plane that crashed in the Alps did make a distress call, CNN's French affiliate says: http://t.co/90w6VC2VBf",
+    "label": "REFUTED",
+    "topic": "germanwings-crash",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "544351969658564608",
+    "claim": "The gunman has released (three) hostages / 3 hostages are free",
+    "original_text": "UPDATE: Reports the gunman has released three hostages, with the six hour #siege unravelling. Details to come. #9News",
+    "label": "NOT ENOUGH INFO",
+    "topic": "sydneysiege",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "500285919539511296",
+    "claim": "M. Brown was involved in a robbery before being shot",
+    "original_text": "If Dorian Johnson is a suspect in a robbery that justified #DarrenWilson killing #MikeBrown, why hasn't Dorian been arrested? #Ferguson",
+    "label": "NOT ENOUGH INFO",
+    "topic": "ferguson",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "576855819125432321",
+    "claim": "Putin is facing a \"palace coup\"",
+    "original_text": "Military coup in #Kremlin and putin has been removed from power? Bullsh1t! 89% Russian people support &amp; adore him! putin is their new stalin",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "544272155144646656",
+    "claim": "The hostage situation in the Sydney cafe is an armed robbery",
+    "original_text": "Hostages reported in armed robbery situation inside café in Martin Place, Sydney - @dailytelegraph http://t.co/p7Z19DDeJ1",
+    "label": "REFUTED",
+    "topic": "sydneysiege",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "576863192854462464",
+    "claim": "Putin is facing a \"palace coup\"",
+    "original_text": "Tanks Around Moscow, Putin Missing: Is It A Coup Or Is Putin With Pregnant Lover?? (Picture) http://t.co/K5Q2IOVAEJ",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "580321925265788928",
+    "claim": "There were 148 people onboard the Germanwings plane",
+    "original_text": "MORE Airbus A320 that crashed in southern France operated by Germanwings, carrying 142 passengers, 2 pilots, 4 crew http://t.co/XwKPmofTD9",
+    "label": "REFUTED",
+    "topic": "germanwings-crash",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "576192621351145472",
+    "claim": "Putin has died",
+    "original_text": "\"Putin umer\" or \"Putin has died,\" is now trending on the Russian Internet. @LToddWood #putindead",
+    "label": "REFUTED",
+    "topic": "putinmissing",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "576889864907427840",
+    "claim": "Putin is facing a \"palace coup\"",
+    "original_text": "Putin ousted in coup???\n\nOk just asking!",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "580320825351471104",
+    "claim": "The Germanwings plane that reportedly crashed was flying from Barcelona to Dusseldorf (flight 4U9525)",
+    "original_text": "BREAKING NEWS #A320 crashed could be Germanwings flight #4U9525 from Barcelona to Dusseldorf. (140 passengers)",
+    "label": "NOT ENOUGH INFO",
+    "topic": "germanwings-crash",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "500361668132892673",
+    "claim": "Ferguson police are leading a smear campaign or character assassination of M. Brown",
+    "original_text": "shorter #ferguson pd: \"damn, we thought we could dirty up this guys name, we didn't think you guys would CHECK\"",
+    "label": "NOT ENOUGH INFO",
+    "topic": "ferguson",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "577342598592901120",
+    "claim": "Putin's disappearance has been \"staged\"",
+    "original_text": "Why Putin’s “Coup” Might be a Staged Event to Win Back the West http://t.co/COmEK0Isn9",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "524956294395224064",
+    "claim": "There were three separate shooting incidents",
+    "original_text": "Here are the 3 locations of shootings in #Ottawa around Parliament Hill (GoofleEarth)\nFrom: @CNNJason\nhttp://t.co/DSyNgBC02U",
+    "label": "REFUTED",
+    "topic": "ottawashooting",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "577258317942149120",
+    "claim": "Putin is facing a \"palace coup\"",
+    "original_text": "Was Vladimir Putin netralized by an internal coup? Or maybe he's vacationing in Harper's closet:  http://t.co/tlr3cFLEyv #LookingForNarnia",
+    "label": "NOT ENOUGH INFO",
+    "topic": "putinmissing",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "552793539856588801",
+    "claim": "French media outlets to be placed under police protection",
+    "original_text": "French media to be put under police protection according to Le Figaro, quoting source in police. #Charliehebdo",
+    "label": "NOT ENOUGH INFO",
+    "topic": "charliehebdo",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "524991844292521984",
+    "claim": "There are multiple shooting suspects still at large",
+    "original_text": "Ottawa Police won't say if there are still suspects at large; say it is still an active operation - live video http://t.co/aF9HyT9BgX",
+    "label": "REFUTED",
+    "topic": "ottawashooting",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "524947971679744000",
+    "claim": "A second shooting suspect has been shot",
+    "original_text": "BREAKING: Police source has told The Globe that a second shooter has been shot. #OttawaShooting",
+    "label": "REFUTED",
+    "topic": "ottawashooting",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "553553173743677440",
+    "claim": "There is a gunman/has been a shooting incident in Trocadero (police clearing the area)",
+    "original_text": "Trocadero square in Paris evacuated. Policemen pointing their gun.\nhttp://t.co/u6qjxNUibY via @MelodiePeps",
+    "label": "REFUTED",
+    "topic": "charliehebdo",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "524955159840182272",
+    "claim": "There was a shooting incident near/at the Rideau Centre",
+    "original_text": "MORE: Police say shots fired at 3 places: The National War Memorial, on Parliament Hill and near Rideau Centre Mall: http://t.co/ZUIqFDn4nl",
+    "label": "REFUTED",
+    "topic": "ottawashooting",
+    "raw_veracity": "false",
+    "evidence": []
+  },
+  {
+    "id": "553531781690163201",
+    "claim": "There was gunfire at the Porte de Vincennes",
+    "original_text": "JUST IN: A separate shooting and hostage situation at a supermarket in eastern Paris has been reported ... developing",
+    "label": "NOT ENOUGH INFO",
+    "topic": "charliehebdo",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "552817965813739520",
+    "claim": "Four cartoonists were killed in the Charlie Hebdo attack",
+    "original_text": "Police confirm deaths of four of France's most celebrated cartoonists Charb, Cabu, Wolinski and Tignous #CharlieHebdo http://t.co/K7ZHV9C27F",
+    "label": "NOT ENOUGH INFO",
+    "topic": "charliehebdo",
+    "raw_veracity": "unverified",
+    "evidence": []
+  },
+  {
+    "id": "553553813542797312",
+    "claim": "There is a gunman/has been a shooting incident in Trocadero (police clearing the area)",
+    "original_text": "Trocadero square in Paris evacuated. Policemen pointing their gun.\nhttp://t.co/3fCXh6Sgp8 via @MelodiePeps",
+    "label": "REFUTED",
+    "topic": "charliehebdo",
+    "raw_veracity": "false",
+    "evidence": []
+  }
+]
