@@ -12,15 +12,17 @@ All baselines respect tool budget and use calibrated confidence verification.
 from __future__ import annotations
 
 import json
+import os
 import re
+import time
 from dataclasses import dataclass
 from typing import List, Dict, Any, Optional, Tuple
 
 from src.config import client, GENERATOR_MODEL, JUDGE_MODEL, TOOLS_CONFIG
 from src.tools.real_toolkit import RealToolkit, JudgeResult, _summarize_hits
 from src.baselines.linear_tool import (
-    retrieve_evidence, 
-    format_snippets_for_prompt, 
+    retrieve_evidence,
+    format_snippets_for_prompt,
     parse_binary_label,
     estimate_cost
 )
@@ -50,6 +52,88 @@ class VerifyResult:
     rationale: str               # Judge's reasoning
 
 
+def _log_jsonl(event_type: str, payload: Dict[str, Any]) -> None:
+    path = os.getenv("MAVERIC_LOG_JSONL", "").strip()
+    if not path:
+        return
+    record = {"ts": time.time(), "event": event_type}
+    record.update(payload)
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=True) + "\n")
+    except Exception:
+        pass
+
+
+def _choose_tool_type(claim: str) -> str:
+    if not claim:
+        return "WEB_SEARCH"
+    if re.search(r"\d", claim) and re.search(r"[=<>+\-*/]", claim):
+        return "PYTHON_EXEC"
+    if re.search(r"\b(percent|percentage|average|mean|sum|ratio|square|sqrt|root)\b", claim, re.IGNORECASE):
+        return "PYTHON_EXEC"
+    return "WEB_SEARCH"
+
+
+def _filter_claims(claims: List[str], max_claims: int) -> List[str]:
+    filtered = []
+    seen = set()
+    for c in claims:
+        if not c:
+            continue
+        claim = str(c).strip()
+        if len(claim) < 20:
+            continue
+        if not re.search(r"\b[A-Z][a-z]{2,}\b", claim) and not re.search(r"\d", claim):
+            continue
+        key = claim.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        filtered.append(claim)
+        if len(filtered) >= max_claims:
+            break
+    return filtered
+
+
+def _build_query(claim: str, answer: str = "") -> str:
+    tokens = re.findall(r"\b[A-Z][a-z]{2,}\b|\b\d+(?:\.\d+)?\b", claim)
+    uniq = []
+    seen = set()
+    for t in tokens:
+        tl = t.lower()
+        if tl in seen:
+            continue
+        seen.add(tl)
+        uniq.append(t)
+        if len(uniq) >= 6:
+            break
+    if uniq:
+        return f"{claim} {' '.join(uniq)}"
+    return claim
+
+
+def _score_evidence(snippets: List[Dict[str, str]]) -> Tuple[int, int]:
+    reliable_domains = (
+        "wikipedia.org",
+        ".gov",
+        ".edu",
+        "reuters.com",
+        "who.int",
+        "cdc.gov",
+        "nih.gov",
+        "nature.com",
+        "science.org",
+    )
+    reliable_count = 0
+    for s in snippets:
+        url = (s.get("url") or "").lower()
+        if any(dom in url for dom in reliable_domains):
+            reliable_count += 1
+    score = reliable_count * 2 + min(len(snippets), 3)
+    return score, reliable_count
+
+
 def VerifyClaim(
     claim: str, 
     budget: float, 
@@ -72,7 +156,50 @@ def VerifyClaim(
     Returns:
         VerifyResult with verdict, confidence, cost, and metadata
     """
-    # Check budget
+    tool_type = (tool_type or "WEB_SEARCH").upper()
+
+    if tool_type == "PYTHON_EXEC":
+        py_cost = TOOLS_CONFIG.get("PYTHON_EXEC", {}).get("cost", 8.0)
+        if py_cost > budget:
+            return VerifyResult(
+                verdict=None,
+                confidence=0.0,
+                spent=0.0,
+                support_ids=[],
+                refute_ids=[],
+                rationale="Budget insufficient for verification"
+            )
+        try:
+            result = RealToolkit.verify_claim("PYTHON_EXEC", claim)
+            verdict = True if result is True else False if result is False else None
+            conf = 1.0 if verdict is not None else 0.0
+            vr = VerifyResult(
+                verdict=verdict,
+                confidence=conf,
+                spent=py_cost,
+                support_ids=[],
+                refute_ids=[],
+                rationale="Python execution verification"
+            )
+            _log_jsonl("verify_claim", {
+                "tool_type": tool_type,
+                "claim": claim[:300],
+                "verdict": vr.verdict,
+                "confidence": vr.confidence,
+                "spent": vr.spent
+            })
+            return vr
+        except Exception as e:
+            print(f"        ⚠️ VerifyClaim error: {e}")
+            return VerifyResult(
+                verdict=None,
+                confidence=0.0,
+                spent=0.0,
+                support_ids=[],
+                refute_ids=[],
+                rationale=f"Verification error: {e}"
+            )
+
     web_cost = TOOLS_CONFIG.get("WEB_SEARCH", {}).get("cost", 5.0)
     if web_cost > budget:
         return VerifyResult(
@@ -83,11 +210,14 @@ def VerifyClaim(
             refute_ids=[],
             rationale="Budget insufficient for verification"
         )
-    
+
     try:
-        # Step 1: Retrieve evidence
-        snippets, search_spent = retrieve_evidence(claim, None, min(budget, web_cost * 2))
-        
+        max_rounds = max(1, int(budget // web_cost))
+        max_rounds = min(max_rounds, 3)
+        search_budget = min(budget, web_cost * max_rounds)
+
+        snippets, search_spent = retrieve_evidence(claim, None, search_budget, max_rounds=max_rounds)
+
         if not snippets:
             return VerifyResult(
                 verdict=None,
@@ -97,18 +227,16 @@ def VerifyClaim(
                 refute_ids=[],
                 rationale="No evidence found"
             )
-        
-        # Step 2: Format evidence for judge
+
         evidence_lines = _summarize_hits(snippets, max_n=10)
-        
-        # Step 3: Call calibrated RAG judge
+
         judge_result: JudgeResult = RealToolkit._rag_judge_with_calibrated_conf(
             clean_fact=claim,
             evidence_lines=evidence_lines,
             evidence_hits=snippets
         )
-        
-        return VerifyResult(
+
+        vr = VerifyResult(
             verdict=judge_result.verdict,
             confidence=judge_result.final_confidence,
             spent=search_spent,
@@ -116,7 +244,15 @@ def VerifyClaim(
             refute_ids=judge_result.refute_ids,
             rationale=judge_result.rationale
         )
-        
+        _log_jsonl("verify_claim", {
+            "tool_type": tool_type,
+            "claim": claim[:300],
+            "verdict": vr.verdict,
+            "confidence": vr.confidence,
+            "spent": vr.spent
+        })
+        return vr
+
     except Exception as e:
         print(f"        ⚠️ VerifyClaim error: {e}")
         return VerifyResult(
@@ -193,7 +329,8 @@ def extract_atomic_claims(text: str, max_claims: int = 10) -> List[str]:
             data = json.loads(json_match.group())
             claims = data.get("claims", [])
             if isinstance(claims, list):
-                return [str(c).strip() for c in claims if c][:max_claims]
+                cleaned = [str(c).strip() for c in claims if c]
+                return _filter_claims(cleaned, max_claims)
         
         # Fallback: extract numbered items
         lines = response.split('\n')
@@ -204,7 +341,7 @@ def extract_atomic_claims(text: str, max_claims: int = 10) -> List[str]:
                 c = re.sub(r'^[\d\.\-\*\•\)]+\s*', '', line).strip()
                 if c and len(c) > 15:
                     claims.append(c)
-        return claims[:max_claims]
+        return _filter_claims(claims, max_claims)
         
     except Exception as e:
         print(f"        ⚠️ Claim extraction error: {e}")
@@ -336,7 +473,7 @@ Select the claim that is MOST CRITICAL to verify next. Consider:
 3. Claims that appear to be CENTRAL to the debate's resolution
 
 ## Output Format
-Selected: [exact claim text to verify]
+Selected: [index number from the Claims Pool]
 Reason: [one sentence explaining why this claim is most critical]"""
 
     REVISE_PROMPT = """You are revising your fact-checking assessment based on NEW verified information.
@@ -404,7 +541,7 @@ Specifically addressing: [list key verified facts and their impact]
             return None
         
         # Format pools for prompt
-        pool_text = "\n".join([f"- [{nid}] {txt[:150]}" for nid, txt in pool[:15]])
+        pool_text = "\n".join([f"{i+1}) [{nid}] {txt[:150]}" for i, (nid, txt) in enumerate(pool[:15])])
         verified_text = "\n".join([
             f"- {nid}: {status}" for nid, status in verified.items()
         ]) if verified else "[None verified yet]"
@@ -423,14 +560,23 @@ Specifically addressing: [list key verified facts and their impact]
                 temperature=0.3
             )
             response = res.choices[0].message.content or ""
-            
-            # Try to match selected claim to pool
             response_lower = response.lower()
+
+            index_match = re.search(r"selected\s*:\s*(\d+)", response_lower)
+            if index_match:
+                idx = int(index_match.group(1)) - 1
+                if 0 <= idx < len(pool):
+                    return pool[idx]
+
             for nid, txt in pool:
-                if nid.lower() in response_lower or txt[:50].lower() in response_lower:
+                if nid.lower() in response_lower:
                     return (nid, txt)
-            
-            # Fallback: return first claim
+
+            for nid, txt in pool:
+                snippet = txt[:50].lower()
+                if snippet and snippet in response_lower:
+                    return (nid, txt)
+
             return pool[0] if pool else None
             
         except Exception as e:
@@ -487,6 +633,8 @@ Specifically addressing: [list key verified facts and their impact]
             extracted = extract_atomic_claims(combined, max_claims=12)
             pool = [(f"c{i}", c) for i, c in enumerate(extracted)]
             tau = {nid: "UNK" for nid, _ in pool}
+
+        claim_text_map = {nid: txt for nid, txt in pool}
         
         if not pool:
             # No claims to verify, return parsed verdict from initial answer
@@ -504,7 +652,8 @@ Specifically addressing: [list key verified facts and their impact]
             node_id, claim_text = selected
             
             # Verify claim
-            result = VerifyClaim(claim_text, budget_remaining)
+            tool_type = _choose_tool_type(claim_text)
+            result = VerifyClaim(claim_text, budget_remaining, tool_type=tool_type)
             
             if result.spent == 0:
                 # Couldn't verify (budget or error)
@@ -537,8 +686,7 @@ Specifically addressing: [list key verified facts and their impact]
             
             # Revise working answer
             verified_facts = "\n".join([
-                f"- [{status}] {nid}: {next((txt for n, txt in self._get_claims_from_graph(graph) if n == nid) if HAS_GRAPH and graph else '', 'claim')[:100]}" 
-                if HAS_GRAPH and graph else f"- [{status}] {nid}"
+                f"- [{status}] {nid}: {(claim_text_map.get(nid, '') or '').strip()[:100]}"
                 for nid, status in tau.items() if status != "UNK"
             ])
             
@@ -561,7 +709,15 @@ Specifically addressing: [list key verified facts and their impact]
                     print(f"        ⚠️ Revise error: {e}")
         
         # Step 4: Return final verdict
-        return parse_binary_label(working_answer)
+        verdict = parse_binary_label(working_answer)
+        _log_jsonl("c1_budgeted_critic", {
+            "claim": claim[:300],
+            "verdict": verdict,
+            "budget_initial": budget,
+            "budget_remaining": budget_remaining,
+            "verifications": verification_count
+        })
+        return verdict
 
 
 # ==============================================================================
@@ -707,8 +863,13 @@ My updated analysis incorporating verified facts...
             for c in claims:
                 if budget_remaining <= 0:
                     break
-                
-                result = VerifyClaim(c, budget_remaining)
+
+                tool_type = _choose_tool_type(c)
+                tool_cost = estimate_cost(tool_type)
+                if tool_cost > budget_remaining:
+                    continue
+
+                result = VerifyClaim(c, budget_remaining, tool_type=tool_type)
                 
                 if result.spent == 0:
                     continue
@@ -751,7 +912,15 @@ My updated analysis incorporating verified facts...
                 break
         
         # Step 3: Return final verdict
-        return parse_binary_label(current_answer)
+        verdict = parse_binary_label(current_answer)
+        _log_jsonl("c2_verify_revise", {
+            "claim": claim[:300],
+            "verdict": verdict,
+            "budget_initial": budget,
+            "budget_remaining": budget_remaining,
+            "rounds": self.max_rounds
+        })
+        return verdict
 
 
 # ==============================================================================
@@ -877,6 +1046,9 @@ How well-grounded is this verdict?
             return None
         
         # Step 2: Iterative retrieve-and-revise
+        last_verdict: Optional[bool] = None
+        stable_verdict_count = 0
+        no_evidence_rounds = 0
         for round_num in range(self.max_rounds):
             if budget_remaining <= 0:
                 break
@@ -884,14 +1056,18 @@ How well-grounded is this verdict?
             print(f"        🔄 RARR Round {round_num + 1}/{self.max_rounds}")
             
             # Retrieve evidence for current answer
-            # Use both the claim and key parts of current answer as queries
-            query = f"{claim} {current_answer[:200]}"
+            query = _build_query(claim, current_answer)
             snippets, spent = retrieve_evidence(query, transcript, budget_remaining)
             budget_remaining -= spent
             
             if not snippets:
                 print(f"          ⚠️ No evidence retrieved")
+                no_evidence_rounds += 1
+                if no_evidence_rounds >= 2:
+                    break
                 continue
+
+            no_evidence_rounds = 0
             
             print(f"          📚 Retrieved {len(snippets)} evidence snippets")
             
@@ -916,13 +1092,33 @@ How well-grounded is this verdict?
                 # Check if answer meaningfully changed
                 if len(new_answer) > 100:
                     current_answer = new_answer
+
+                verdict = parse_binary_label(current_answer)
+                evidence_score, reliable_count = _score_evidence(snippets)
+
+                if verdict is not None and verdict == last_verdict and reliable_count >= 1 and evidence_score >= 3:
+                    stable_verdict_count += 1
+                else:
+                    stable_verdict_count = 0
+                last_verdict = verdict
+
+                if stable_verdict_count >= 2:
+                    break
                     
             except Exception as e:
                 print(f"        ⚠️ Revise error: {e}")
                 break
         
         # Step 3: Return final verdict
-        return parse_binary_label(current_answer)
+        verdict = parse_binary_label(current_answer)
+        _log_jsonl("c3_rarr", {
+            "claim": claim[:300],
+            "verdict": verdict,
+            "budget_initial": budget,
+            "budget_remaining": budget_remaining,
+            "rounds": self.max_rounds
+        })
+        return verdict
 
 
 # ==============================================================================

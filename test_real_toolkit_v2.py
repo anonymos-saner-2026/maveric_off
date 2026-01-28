@@ -45,12 +45,16 @@ def assert_is_bool(name: str, x) -> None:
         _fail(f"[{name}] expected bool, got {type(x)}: {x}")
     _ok(f"{name} (bool)")
 
-def assert_json_list(name: str, s: str) -> None:
+def assert_json_payload(name: str, s: str) -> None:
     try:
         obj = json.loads(s)
-        if not isinstance(obj, list):
-            _fail(f"[{name}] expected JSON list, got {type(obj)}")
-        _ok(f"{name} (json list, len={len(obj)})")
+        if not isinstance(obj, dict):
+            _fail(f"[{name}] expected JSON dict, got {type(obj)}")
+        if "serper" not in obj or "ddg" not in obj:
+            _fail(f"[{name}] missing serper/ddg keys")
+        if not isinstance(obj.get("serper"), list) or not isinstance(obj.get("ddg"), list):
+            _fail(f"[{name}] serper/ddg must be lists")
+        _ok(f"{name} (json dict, serper={len(obj.get('serper', []))}, ddg={len(obj.get('ddg', []))})")
     except Exception as e:
         _fail(f"[{name}] invalid JSON: {e}\nRaw: {s[:300]}")
 
@@ -101,17 +105,17 @@ def test_google_search_nonempty_when_possible():
     """
     query = "Eiffel Tower location"
     s = RealToolkit.google_search(query)
-    assert_json_list("google_search_json_v2", s)
+    assert_json_payload("google_search_json_v2", s)
 
     results = json.loads(s)
-    if len(results) == 0:
+    if not results.get("serper") and not results.get("ddg"):
         if not SERPER_API_KEY:
             _warn("google_search returned empty list and SERPER_API_KEY is empty. DDG may be blocked in this environment.")
         else:
             _warn("google_search returned empty list even though SERPER_API_KEY is set. Could be quota/timeout.")
     else:
         # Basic sanity check fields if any result exists
-        r0 = results[0]
+        r0 = (results.get("serper") or results.get("ddg") or [{}])[0]
         assert_true("google_search_result_has_snippet", isinstance(r0.get("snippet", ""), str))
         _ok("google_search_nonempty_when_possible")
 

@@ -1,0 +1,73 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: /home/tungnvt5re/research-projects/reinforcement_learning_intro_books/maveric_ijcai/experiments/p02_evaluation_harness/results_comprehensive/20260128_171734_maveric_fever.jsonl
+Dataset: fever
+Method: maveric
+Samples: 30 (verified: 30)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.7667 (23/30)
+Precision: 0.8333
+Recall:    0.8696
+F1:        0.8511
+
+Confusion Matrix:
+  TP:  20  FP:   4
+  FN:   3  TN:   3
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 7.35 ± 1.04
+Min Budget: 4.00
+Max Budget: 8.00
+
+Avg Tool Calls: 6.93 ± 1.59
+Total Tool Calls: 208
+
+Tool Call Breakdown:
+  TOTAL          :  208 (100.0%)
+
+Avg Runtime: 98.05s per sample
+Total Runtime: 2941.43s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.90 ± 1.16
+Avg Edges Removed (true refine): 0.23 ± 0.67
+Avg Edges Removed (false refine): 0.87 ± 1.06
+Avg Edges Removed (prune): 1.13 ± 1.52
+Avg SGS Size: 6.77 ± 3.29
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (7 errors)
+----------------------------------------------------------------------
+
+1. fever_179616
+   Claim: Michael Giacchino composed the score for Doctor Strange....
+   Predicted: False, Gold: True
+
+2. fever_228271
+   Claim: The Silence of the Lambs was a film starring Scott Glenn....
+   Predicted: False, Gold: True
+
+3. fever_15812
+   Claim: Peggy Sue Got Married is a Egyptian film released in 1986....
+   Predicted: True, Gold: False
+
+4. fever_57330
+   Claim: Andy Roddick lost 5 Master Series between 2002 and 2010....
+   Predicted: True, Gold: False
+
+5. fever_52432
+   Claim: As the Vietnam War raged in 1969, Yoko Ono and her husband John Lennon did not h...
+   Predicted: True, Gold: False
+
+   ... and 2 more errors
+
+======================================================================

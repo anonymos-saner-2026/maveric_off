@@ -195,29 +195,44 @@ def parse_binary_label(text: str) -> Optional[bool]:
     """
     if not text:
         return None
-    
+
     text_upper = text.upper()
-    
-    # Check for True
-    if "[TRUE]" in text_upper or "<VERDICT>TRUE" in text_upper:
+
+    verdict_match = re.search(r"<VERDICT>\s*(TRUE|FALSE|UNCERTAIN|ABSTAIN)\s*</VERDICT>", text_upper)
+    if verdict_match:
+        token = verdict_match.group(1)
+        if token == "TRUE":
+            return True
+        if token == "FALSE":
+            return False
+        return None
+
+    verdict_line = re.search(r"\bVERDICT\s*:\s*(TRUE|FALSE|ABSTAIN|UNCERTAIN)\b", text_upper)
+    if verdict_line:
+        token = verdict_line.group(1)
+        if token == "TRUE":
+            return True
+        if token == "FALSE":
+            return False
+        return None
+
+    if "[TRUE]" in text_upper:
         return True
-    if re.search(r"\bTRUE\b", text_upper):
-        # Ensure it's not "NOT TRUE" or similar if we wanted to be very careful, 
-        # but for these baselines usually TRUE appears in a verdict block.
-        # Check for negation near True? 
-        # Simpler: prioritized check. B1/C1 prompts use specific formats.
-        return True
-        
-    # Check for False
-    if "[FALSE]" in text_upper or "<VERDICT>FALSE" in text_upper:
+    if "[FALSE]" in text_upper:
         return False
+    if "[ABSTAIN]" in text_upper:
+        return None
+
+    if re.search(r"\bNOT\s+TRUE\b", text_upper) or re.search(r"\bNOT\s+FALSE\b", text_upper):
+        return None
+
+    if re.search(r"\bTRUE\b", text_upper):
+        return True
     if re.search(r"\bFALSE\b", text_upper):
         return False
-        
-    # Check for Abstain/Uncertain
-    if "[ABSTAIN]" in text_upper or "UNCERTAIN" in text_upper or "ABSTAIN" in text_upper:
+    if re.search(r"\bUNCERTAIN\b", text_upper) or re.search(r"\bABSTAIN\b", text_upper):
         return None
-        
+
     return None
 
 

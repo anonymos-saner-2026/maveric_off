@@ -116,7 +116,7 @@ class TestSGS(unittest.TestCase):
         g.add_attack("a", "b")
         g.add_attack("b", "c")
 
-        acc = g.get_grounded_extension(use_shield=False)
+        acc = g.get_grounded_extension(use_shield=False, require_evidence=False)
         self.assertEqual(acc, {"a", "c"})
 
 
@@ -142,7 +142,7 @@ class TestSGS(unittest.TestCase):
         g.add_attack("a", "b")
         g.add_attack("b", "c")
 
-        acc = g.get_grounded_extension(use_shield=False)
+        acc = g.get_grounded_extension(use_shield=False, require_evidence=False)
         self.assertEqual(acc, {"d", "b"})
 
     def test_03_shield_depends_on_alive_attackers_not_total_attackers(self):
@@ -182,10 +182,10 @@ class TestSGS(unittest.TestCase):
         g.add_support("s", "v")
         set_verified(g, "s", True)
 
-        acc_no_shield = g.get_grounded_extension(use_shield=False)
+        acc_no_shield = g.get_grounded_extension(use_shield=False, require_evidence=False)
         self.assertNotIn("v", acc_no_shield, "Without shield, v should not be accepted.")
 
-        acc_shield = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc_shield = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertIn("v", acc_shield, "With shield and reduced alive attackers, v should be accepted.")
 
     def test_04_support_spam_has_no_effect_without_verified_true(self):
@@ -215,7 +215,7 @@ class TestSGS(unittest.TestCase):
             g.add_node(make_node(s))  # unverified by default
             g.add_support(s, "v")
 
-        acc_spam = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc_spam = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertNotIn("v", acc_spam, "Unverified support should not change acceptability.")
 
         # Now add one verified-true supporter
@@ -223,7 +223,7 @@ class TestSGS(unittest.TestCase):
         g.add_support("s_true", "v")
         set_verified(g, "s_true", True)
 
-        acc_one_true = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc_one_true = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertIn("v", acc_one_true, "One verified-true supporter should shield against one alive attacker when alpha=1.")
 
     def test_05_alpha_sensitivity(self):
@@ -247,10 +247,10 @@ class TestSGS(unittest.TestCase):
         g.add_support("s", "v")
         set_verified(g, "s", True)
 
-        acc_alpha1 = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc_alpha1 = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertIn("v", acc_alpha1)
 
-        acc_alpha2 = g.get_grounded_extension(use_shield=True, alpha=2.0)
+        acc_alpha2 = g.get_grounded_extension(use_shield=True, alpha=2.0, require_evidence=False)
         self.assertNotIn("v", acc_alpha2)
 
     def test_06_verified_false_nodes_are_pruned_from_active_set(self):
@@ -269,7 +269,7 @@ class TestSGS(unittest.TestCase):
         g.add_attack("f", "v")
         set_verified(g, "f", False)
 
-        acc = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertIn("v", acc)
         self.assertNotIn("f", acc)
 
@@ -288,7 +288,7 @@ class TestSGS(unittest.TestCase):
             g.add_node(make_node(nid))
 
         # v is unattacked, so it is accepted even without shield
-        acc0 = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc0 = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertIn("v", acc0)
 
         # add verified true supporters
@@ -297,7 +297,7 @@ class TestSGS(unittest.TestCase):
         set_verified(g, "s1", True)
         set_verified(g, "s2", True)
 
-        acc1 = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc1 = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertIn("v", acc1)
 
     def test_08_conflict_free_blocks_shielded_node_attacked_by_accepted(self):
@@ -321,7 +321,7 @@ class TestSGS(unittest.TestCase):
         g.add_support("s", "v")
         set_verified(g, "s", True)
 
-        acc = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertIn("x", acc)
         self.assertNotIn("v", acc)
 
@@ -337,13 +337,13 @@ class TestSGS(unittest.TestCase):
 
         g.add_attack("v", "v")
 
-        acc0 = g.get_grounded_extension(use_shield=False)
+        acc0 = g.get_grounded_extension(use_shield=False, require_evidence=False)
         self.assertNotIn("v", acc0)
 
         g.add_support("s", "v")
         set_verified(g, "s", True)
 
-        acc1 = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc1 = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertNotIn("v", acc1)
         self.assertIn("s", acc1)
 
@@ -360,7 +360,7 @@ class TestSGS(unittest.TestCase):
         g1.add_support("s", "c")
         set_verified(g1, "s", True)
 
-        acc1 = g1.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc1 = g1.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
 
         # Build renamed copy
         mapping = {"a": "n10", "b": "n20", "c": "n30", "s": "n40"}
@@ -374,7 +374,7 @@ class TestSGS(unittest.TestCase):
             elif d.get("type") == "support":
                 g2.add_support(mapping[u], mapping[v])
 
-        acc2 = g2.get_grounded_extension(use_shield=True, alpha=1.0)
+        acc2 = g2.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         acc1_renamed = {mapping[x] for x in acc1}
         self.assertEqual(acc2, acc1_renamed)
 
@@ -390,7 +390,7 @@ class TestSGS(unittest.TestCase):
         g.add_attack("b", "c")
 
         original_nodes = set(g.nx_graph.nodes())
-        base = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        base = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
 
         # spam supports into every original node from unverified nodes
         for i in range(200):
@@ -399,7 +399,7 @@ class TestSGS(unittest.TestCase):
             for v in original_nodes:
                 g.add_support(sid, v)
 
-        after = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        after = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
 
         # Compare only on original nodes
         self.assertEqual(base, after.intersection(original_nodes))
@@ -438,8 +438,8 @@ class TestSGS(unittest.TestCase):
             original_nodes = set(g.nx_graph.nodes())
 
             # Baseline acceptance (alpha=1.0) and determinism check (I5)
-            acc_a10 = g.get_grounded_extension(use_shield=True, alpha=1.0)
-            acc_a10_again = g.get_grounded_extension(use_shield=True, alpha=1.0)
+            acc_a10 = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
+            acc_a10_again = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
             self.assertEqual(
                 acc_a10,
                 acc_a10_again,
@@ -507,7 +507,7 @@ class TestSGS(unittest.TestCase):
                     v = rng.choice(targets)
                     g.add_support(sid, v)
 
-            acc_after_spam = g.get_grounded_extension(use_shield=True, alpha=1.0)
+            acc_after_spam = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
             proj_after = acc_after_spam.intersection(original_nodes)
 
             self.assertEqual(
@@ -552,7 +552,7 @@ class TestSGS(unittest.TestCase):
 
         original_nodes = set(g.nx_graph.nodes())
 
-        base = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        base = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
 
         # ---------------------------
         # (T1) Add unverified support spam into original nodes
@@ -565,7 +565,7 @@ class TestSGS(unittest.TestCase):
                 v = rng.choice(list(original_nodes))
                 g.add_support(sid, v)
 
-        after_t1 = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        after_t1 = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertEqual(
             base.intersection(original_nodes),
             after_t1.intersection(original_nodes),
@@ -599,7 +599,7 @@ class TestSGS(unittest.TestCase):
                 else:
                     g.add_support(u, fid)
 
-        after_t2 = g.get_grounded_extension(use_shield=True, alpha=1.0)
+        after_t2 = g.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
         self.assertEqual(
             base.intersection(original_nodes),
             after_t2.intersection(original_nodes),
@@ -638,7 +638,7 @@ class TestSGS(unittest.TestCase):
             elif et == "support":
                 gR.add_support(mapping[u], mapping[v])
 
-        accR = gR.get_grounded_extension(use_shield=True, alpha=1.0)
+        accR = gR.get_grounded_extension(use_shield=True, alpha=1.0, require_evidence=False)
 
         # Compare acceptance on the renamed original node set
         original_nodes_renamed = {mapping[n] for n in original_nodes}

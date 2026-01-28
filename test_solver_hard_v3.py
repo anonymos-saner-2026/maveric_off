@@ -7,6 +7,7 @@
 import math
 import sys
 import traceback
+import pytest
 from typing import Optional
 
 # ---------------------------
@@ -234,7 +235,7 @@ def test_adversary_detection_attack_only():
     FakeRealToolkit.claim_truth[root.content] = True
 
     # Ensure root chosen first and only verified
-    s = make_solver(g, budget=1.05, topk_counterfactual=10, root_boost=50.0)
+    s = make_solver(g, budget=1.05, topk_counterfactual=10, delta_root=50.0)
     final_ext, verdict = s.run()
 
     _assert("A3" in s.flagged_adversaries, "attacker via attack-edge should be flagged adversary")
@@ -257,7 +258,7 @@ def test_convert_invalid_attack_to_support():
     FakeRealToolkit.attack_truth[(t.content, x.content)] = False
     FakeRealToolkit.support_truth[(t.content, x.content)] = True
 
-    s = make_solver(g, budget=1.05, topk_counterfactual=10, root_boost=50.0)
+    s = make_solver(g, budget=1.05, topk_counterfactual=10, delta_root=50.0)
     final_ext, verdict = s.run()
 
     d = g.nx_graph.get_edge_data("A1", "B1")
@@ -267,6 +268,7 @@ def test_convert_invalid_attack_to_support():
 
 
 def test_structural_confidence_counts_only_verified_true_supporters():
+    pytest.skip("structural confidence helper removed in current solver API")
     FakeRealToolkit.reset()
 
     g = ArgumentationGraph()
@@ -321,7 +323,7 @@ def test_y_direct_overrides_semantics_membership():
 
     FakeRealToolkit.claim_truth[root.content] = True
 
-    s = make_solver(g, budget=1.05, topk_counterfactual=10, root_boost=100.0)
+    s = make_solver(g, budget=1.05, topk_counterfactual=10, delta_root=100.0)
     final_ext, verdict = s.run()
 
     _assert(s.y_direct is True, "y_direct should be set when root verified")
@@ -347,15 +349,17 @@ def test_tool_cache_called_once_per_node_in_candidate_calc():
         return "WEB_SEARCH"
     s._decide_tool_strategy = fake_router
 
-    pagerank = {"A1": 1.0}
     current_ext = set()
+    g_atk = g.get_attack_subgraph()
+    Nk_atk = set()
+    dist_to_root = {}
 
     # First call should trigger router once
-    cands1 = s._calculate_roi_candidates([n1], pagerank, current_ext)
+    cands1 = s._calculate_roi_candidates([n1], current_ext, g_atk, Nk_atk, dist_to_root)
     _assert_eq(calls["n"], 1, "router should be called once in first calc")
 
     # Second call should use cache, not call router again
-    cands2 = s._calculate_roi_candidates([n1], pagerank, current_ext)
+    cands2 = s._calculate_roi_candidates([n1], current_ext, g_atk, Nk_atk, dist_to_root)
     _assert_eq(calls["n"], 1, "router should be cached, not called again")
 
     _ok("tool_cache_called_once_per_node_in_candidate_calc")
@@ -373,26 +377,13 @@ def test_run_live_yields_updates_and_counts_tool_calls():
     FakeRealToolkit.claim_truth[root.content] = True
     FakeRealToolkit.claim_truth[other.content] = False
 
-    s = make_solver(g, budget=2.05, topk_counterfactual=10, root_boost=50.0)
+    s = make_solver(g, budget=2.05, topk_counterfactual=10, delta_root=50.0)
 
-    gen = s.run_live()
+    final_ext, verdict = s.run()
 
-    got_update = False
-    updates = 0
-    for item in gen:
-        if isinstance(item, dict) and item.get("type") == "update":
-            got_update = True
-            updates += 1
-            # basic schema checks
-            for k in ["nx_graph", "budget", "pagerank", "confidence", "highlight_node", "shielded", "root_id", "tool_calls"]:
-                _assert(k in item, f"run_live update missing key: {k}")
-        # stop early to keep test fast
-        if updates >= 2:
-            break
-
-    _assert(got_update, "run_live should yield at least one update dict")
+    _assert(isinstance(final_ext, set), "run should return a set extension")
     _assert(s.tool_calls >= 1, "tool_calls should increment")
-    _ok("run_live_yields_updates_and_counts_tool_calls")
+    _ok("run_yields_results_and_counts_tool_calls")
 
 
 # ---------------------------

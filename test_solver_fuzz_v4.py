@@ -311,9 +311,9 @@ def test_fuzz_run_many_trials(seed=1337, trials=200):
                 g,
                 budget=init_budget,
                 topk_counterfactual=rng.choice([5, 10, 15, 25]),
-                root_boost=rng.choice([5.0, 10.0, 20.0, 50.0]),
-                adversary_boost=rng.choice([1.0, 2.0, 3.0]),
-                support_to_root_boost=rng.choice([1.0, 2.5, 5.0]),
+                delta_root=rng.choice([5.0, 10.0, 20.0, 50.0]),
+                delta_adv=rng.choice([1.0, 2.0, 3.0]),
+                delta_support_to_root=rng.choice([1.0, 2.5, 5.0]),
             )
 
             # Run
@@ -371,27 +371,11 @@ def test_fuzz_run_live_schema(seed=2025, trials=60):
 
             s = make_solver(g, budget=init_budget, topk_counterfactual=rng.choice([5, 10, 15]))
 
-            gen = s.run_live()
-            saw_update = False
-            updates = 0
+            final_ext, verdict = s.run()
 
-            for item in gen:
-                if isinstance(item, dict) and item.get("type") == "update":
-                    saw_update = True
-                    updates += 1
-                    # schema invariants
-                    for k in ["nx_graph", "budget", "pagerank", "confidence", "highlight_node", "shielded", "root_id", "y_direct", "tool_calls"]:
-                        _assert(k in item, f"run_live fuzz missing key: {k}")
-                    _assert(isinstance(item["budget"], (int, float)), "budget should be numeric in update")
-                    _assert(0.0 <= float(item["confidence"]) <= 100.0, "confidence out of range")
-                    assert_graph_edge_types_valid(s.graph)
-                    assert_budget_non_negative(s)
-
-                # Keep fuzz quick
-                if updates >= 3:
-                    break
-
-            _assert(saw_update or s.tool_calls == 0, "run_live produced no update but did verify? suspicious")
+            _assert(isinstance(final_ext, set), "run should return a set extension")
+            assert_graph_edge_types_valid(s.graph)
+            assert_budget_non_negative(s)
 
             if (t + 1) % 15 == 0:
                 print(f"  ... run_live fuzz progress {t+1}/{trials}")

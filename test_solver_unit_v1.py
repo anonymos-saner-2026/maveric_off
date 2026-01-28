@@ -63,7 +63,7 @@ def test_adversary_flag_and_convert_attack_to_support():
     g = _make_graph_case_basic()
 
     # Force root detection to be A1
-    def fake_root():
+    def fake_root(**_kwargs):
         return "A1"
     g.find_semantic_root = fake_root
 

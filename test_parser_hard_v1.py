@@ -93,7 +93,7 @@ def test_parser_drops_dangling_edges():
         return {
             "arguments": [
                 {"id": "A1", "speaker": "Mod", "content": "Root claim", "tool": "WEB_SEARCH"},
-                {"id": "A2", "speaker": "Alice", "content": "Support", "tool": "WEB_SEARCH"},
+                {"id": "A2", "speaker": "Alice", "content": "Root claim support evidence", "tool": "WEB_SEARCH"},
             ],
             "relations": [
                 {"from": "A2", "to": "A1", "type": "support"},
