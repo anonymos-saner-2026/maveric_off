@@ -41,6 +41,12 @@ from src.baselines.selector_ablation import (  # noqa: E402
     D4DistanceRefineSolver,
     D5ProxyOnlyRefineSolver,
 )
+from src.baselines.class_e import (  # noqa: E402
+    MAVBaseline,
+    BoNMAVBaseline,
+    MADFactBaseline,
+    GKMADBaseline,
+)
 from dataset_loader import load_dataset_by_name  # noqa: E402
 
 from src.agents.debater import generate_debate  # noqa: E402
@@ -367,6 +373,19 @@ def _build_solver(
     raise ValueError(f"Unknown baseline: {baseline}")
 
 
+def _build_class_e_baseline(baseline: str):
+    key = str(baseline or "").lower().strip()
+    if key in {"e1_mav", "mav", "mav_baseline"}:
+        return MAVBaseline()
+    if key in {"e2_bon_mav", "bon_mav", "bon-mav"}:
+        return BoNMAVBaseline()
+    if key in {"e3_mad_fact", "mad_fact", "mad-fact"}:
+        return MADFactBaseline()
+    if key in {"e4_gkmad", "gkmad"}:
+        return GKMADBaseline()
+    return None
+
+
 def run_solver_on_statement(
     statement: str,
     statement_id: str,
@@ -383,6 +402,44 @@ def run_solver_on_statement(
 ) -> Dict[str, Any]:
     if verbose:
         print(f"    🧩 Building graph for: {statement[:120]}... (id={statement_id})")
+
+    baseline_obj = _build_class_e_baseline(baseline)
+    if baseline_obj is not None:
+        start = time.time()
+        verdict = baseline_obj.verify(
+            claim=statement,
+            transcript=None,
+            budget=float(budget),
+        )
+        budget_used = float(getattr(baseline_obj, "budget_spent", 0.0) or 0.0)
+        tool_calls_total = int(getattr(baseline_obj, "tool_calls", 0) or 0)
+        baseline_metrics = getattr(baseline_obj, "stats", None)
+        elapsed = time.time() - start
+
+        vt = 1 if verdict is True else 0
+        vf = 1 if verdict is False else 0
+
+        return {
+            "statement": statement,
+            "verdict": None if verdict is None else bool(verdict),
+            "y_direct": None,
+            "root_in_ext": False,
+            "unverified": verdict is None,
+            "verified_true": int(vt),
+            "verified_false": int(vf),
+            "score": 0.0,
+            "final_ext_size": 0,
+            "budget_used": round(float(budget_used), 2),
+            "budget_left": round(max(0.0, float(budget) - float(budget_used)), 2),
+            "tool_calls_total": int(tool_calls_total),
+            "baseline_metrics": baseline_metrics,
+            "pruned": 0,
+            "edges_removed": 0,
+            "edges_removed_false_refine": 0,
+            "edges_removed_pruned": 0,
+            "error": None,
+            "runtime_s": round(elapsed, 2),
+        }
 
     graph = create_debate_graph_from_claim(
         claim=statement,
@@ -719,8 +776,8 @@ def main() -> None:
         type=str,
         default="maveric",
         help=(
-            "Selector baseline: maveric, d1_random, d2_uncertainty, d3_pagerank, "
-            "d3_degree, d3_betweenness, d4_distance, d5_proxy"
+            "Baseline: maveric, d1_random, d2_uncertainty, d3_pagerank, d3_degree, "
+            "d3_betweenness, d4_distance, d5_proxy, e1_mav, e2_bon_mav, e3_mad_fact, e4_gkmad"
         ),
     )
     parser.add_argument("--dataset", type=str, required=True)

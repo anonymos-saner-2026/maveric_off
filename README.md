@@ -100,6 +100,23 @@ python test_correctness_toolkit.py
 *   **CRITIC**: Verification based on LLM self-critique/feedback without graph topology.
 *   **Random**: Randomly selects nodes to verify (baseline).
 
+## 📎 Appendix: Class E Baselines (Defaults)
+
+The following defaults are used for Class E baselines (MAV, BoN-MAV, MAD-Fact, GKMAD):
+
+- **E1 MAV (Multi-Agent Verification)**
+  - `num_verifiers=5`, `max_claims=10`
+  - Budget split across verifiers; if split falls below tool cost, all budget is assigned to one verifier.
+- **E2 BoN-MAV (Best-of-n + MAV)**
+  - `n=5`, `m_verifiers=5`, `top_k=4`
+  - Stage 1 self-critic filters candidates; Stage 2 runs MAV on each top-k with equal budget share.
+- **E3 MAD-Fact**
+  - `num_jurors=3`, `rounds=2`, `max_claims=8`
+  - Budget split across claims; per-claim tools used at most once per round.
+- **E4 GKMAD**
+  - `rounds=2`
+  - Guided debate with advisor + final verifier; tool usage is budgeted per round and at final step.
+
 ## ⚠️ Notes
 *   **Costs**: Running experiments uses LLM tokens (OpenAI) and Search API credits (Serper). Check `src/config.py` and `TOOL_COSTS` in `src/core/solver.py` for cost estimates.
 *   **Determinism**: Python execution is sandboxed but relies on `exec()`. Review `src/tools/real_toolkit.py` for security boundaries.
