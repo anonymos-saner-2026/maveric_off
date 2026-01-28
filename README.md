@@ -1,5 +1,4 @@
-# MaVERiC (Multi-Agent Verification and Reasoning in Context)
-
+# MaVERiC
 MaVERiC is a research prototype for robust multi-agent debate and verification.
 It generates debates, parses them into an argumentation graph, and verifies claims
 under a tool budget using a graph-aware solver. The repository also includes a
