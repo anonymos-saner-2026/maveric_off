@@ -517,15 +517,72 @@ def _atomicity_violations(af: ArgumentationGraph) -> List[str]:
 
 
 def _derive_tool_for_clause(parent_tool: str, clause_text: str) -> str:
+    """
+    Determines the best verification tool for a claim.
+    Prioritizes PYTHON_EXEC for any claim involving numbers, calculations, or statistics.
+    """
     tool = _norm_tool(parent_tool)
     if tool == "COMMON_SENSE":
         return tool
+    
     clause_lower = clause_text.lower()
+    
+    # --- PYTHON_EXEC Detection Patterns ---
+    
+    # Pattern 1: Basic arithmetic (e.g., "2 + 2 = 4", "5 * 10 equals 50")
     if re.search(r"(-?\d+)\s*[\+\-\*/]\s*(-?\d+)", clause_lower) and ("=" in clause_lower or "equal" in clause_lower):
         return "PYTHON_EXEC"
-    if "leap year" in clause_lower or "sqrt" in clause_lower or "square root" in clause_lower:
+    
+    # Pattern 2: Explicit math keywords
+    math_keywords = [
+        "sqrt", "square root", "leap year", "prime number", "factorial",
+        "logarithm", "exponent", "power of", "percentage", "percent of",
+        "average", "mean", "median", "sum of", "product of", "ratio",
+        "divided by", "multiplied by", "plus", "minus", "calculate",
+        "computation", "formula", "equation"
+    ]
+    for kw in math_keywords:
+        if kw in clause_lower:
+            return "PYTHON_EXEC"
+    
+    # Pattern 3: Comparisons with numbers (e.g., "10% higher", "500x more", "twice as much")
+    comparison_patterns = [
+        r"\d+\s*%",                          # "10%", "50%"
+        r"\d+x\s+(higher|lower|more|less|faster|slower|bigger|smaller)",  # "500x higher"
+        r"(twice|thrice|half|double|triple)\s+(as\s+)?(much|many|fast|high|low)",  # "twice as much"
+        r"\d+\s*times\s+(higher|lower|more|less|faster|slower)",  # "10 times faster"
+        r"(increased|decreased|grew|shrunk|rose|fell)\s+by\s+\d+",  # "increased by 50"
+        r"\d+\s*(million|billion|trillion|thousand|hundred)",  # "500 million"
+        r"(greater|less|more|fewer)\s+than\s+\d+",  # "greater than 100"
+        r"\d+\s*(km|kg|m|cm|mm|gb|mb|tb|hz|mhz|ghz)",  # units
+    ]
+    for pattern in comparison_patterns:
+        if re.search(pattern, clause_lower):
+            return "PYTHON_EXEC"
+    
+    # Pattern 4: Statistical claims (e.g., "p-value", "confidence interval", "standard deviation")
+    stat_keywords = [
+        "p-value", "p value", "confidence interval", "standard deviation",
+        "statistically significant", "correlation", "regression", "variance",
+        "sample size", "probability", "odds ratio", "chi-square", "t-test",
+        "anova", "hypothesis test"
+    ]
+    for kw in stat_keywords:
+        if kw in clause_lower:
+            return "PYTHON_EXEC"
+    
+    # Pattern 5: Date/Time calculations
+    if re.search(r"(how many|number of)\s+(days|weeks|months|years|hours|minutes|seconds)\s+(between|since|until|from)", clause_lower):
         return "PYTHON_EXEC"
+    
+    # Pattern 6: Any claim with multiple numbers that might need comparison
+    numbers_found = re.findall(r"\b\d+(?:\.\d+)?\b", clause_lower)
+    if len(numbers_found) >= 2:
+        # Multiple numbers often imply comparison or calculation
+        return "PYTHON_EXEC"
+    
     return tool or "WEB_SEARCH"
+
 
 
 def _merge_split_results(
