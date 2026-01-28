@@ -113,6 +113,21 @@ def _is_trusted_domain(url: str) -> bool:
         "who.int",
         "ioc.org",
         "olympics.com",
+        "mayoclinic.org",
+        "healthline.com",
+        "webmd.com",
+        "medicalnewstoday.com",
+        "nationalgeographic.com",
+        "history.com",
+        "livescience.com",
+        "scientificamerican.com",
+        "reuters.com",
+        "apnews.com",
+        "afp.com",
+        "bloomberg.com",
+        "forbes.com",
+        "wallstreetjournal.com",
+        "wsj.com",
     ]
 
     if _is_gov_domain(d) or _is_edu_domain(d):
@@ -2334,8 +2349,13 @@ Output STRICT JSON with keys:
         direct_score = min(1.0, overlap / 4.0)
 
         econf = 0.45 * dom_score + 0.35 * cite_score + 0.20 * direct_score
+        
+        # Less aggressive clamping for high-consistency non-trusted results
         if not trusted:
-            econf *= 0.35
+            if cite_score >= 0.8 and direct_score >= 0.5:
+                econf *= 0.70  # Higher floor for very consistent web results
+            else:
+                econf *= 0.45  # Increased from 0.35
 
         return max(0.0, min(1.0, econf))
 
@@ -2895,14 +2915,19 @@ Statement: {clean_fact}
                                 final_vote = RealToolkit._vote_2_of_3(v_serper, v_ddg, v_cs)
                                 final = bool(final_vote) if final_vote is not None else False
 
-                if RealToolkit._llm_error_flag:
-                    RealToolkit._cache[cache_key] = None
-                    print("        └─ ⚠️ Final Result: ABSTAIN (LLM error)")
-                    return None
+                if final is None:
+                    if RealToolkit._llm_error_flag:
+                        RealToolkit._cache[cache_key] = None
+                        print("        └─ ⚠️ Final Result: ABSTAIN (LLM error)")
+                        return None
+                    else:
+                        RealToolkit._cache[cache_key] = None
+                        print("        └─ ⚠️ Final Result: ABSTAIN (Low confidence)")
+                        return None
 
                 RealToolkit._cache[cache_key] = bool(final)
                 status_icon = "✅" if final else "❌"
-                print(f"        └─ {status_icon} Final Result: {'TRUE' if final else 'FALSE'}")
+                print(f"        └─ {status_icon} Final Result: {'TRUE' if final else 'FALSE'} (conf={jr.final_confidence:.2f})")
                 return bool(final)
 
             # ------------------------
