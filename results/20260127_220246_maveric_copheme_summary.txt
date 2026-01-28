@@ -1,0 +1,55 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: results/20260127_220246_maveric_copheme.jsonl
+Dataset: copheme
+Method: maveric
+Samples: 2 (verified: 1)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  1.0000 (1/1)
+Precision: 0.0000
+Recall:    0.0000
+F1:        0.0000
+
+Confusion Matrix:
+  TP:   0  FP:   0
+  FN:   0  TN:   1
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 2.00 ± 1.00
+Min Budget: 1.00
+Max Budget: 3.00
+
+Avg Tool Calls: 2.00 ± 1.00
+Total Tool Calls: 4
+
+Tool Call Breakdown:
+  TOTAL          :    4 (100.0%)
+
+Avg Runtime: 321.74s per sample
+Total Runtime: 643.48s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.50 ± 0.50
+Avg Edges Removed (true refine): 0.00 ± 0.00
+Avg Edges Removed (false refine): 0.00 ± 0.00
+Avg Edges Removed (prune): 0.50 ± 0.50
+Avg SGS Size: 0.00 ± 0.00
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (1 errors)
+----------------------------------------------------------------------
+
+1. copheme_576796432730071040
+   Claim: Putin has died...
+   Predicted: None, Gold: False
+
+======================================================================

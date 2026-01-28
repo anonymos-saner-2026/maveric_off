@@ -6,6 +6,8 @@ import time
 import shutil
 import random
 import hashlib
+import zipfile
+import tarfile
 import subprocess
 from pathlib import Path
 from typing import Optional, Callable, List, Any, Dict
@@ -246,6 +248,31 @@ def strategy_hf_snapshot(name: str, repo_id: str, allow_patterns: List[str]) -> 
     shutil.copy2(candidates[0], out_path)
     return out_path
 
+def strategy_download_zip_and_extract(name: str, url: str) -> Path:
+    """
+    Download a zip/tar file, extract it, and return the directory.
+    """
+    log(f"   ⏳ Download & Extract: {name}")
+    archive_path = RAW_DIR / name / "archive.file"
+    download_file_http(url, archive_path)
+    
+    extract_dir = RAW_DIR / name / "extracted"
+    extract_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Check file type
+    if tarfile.is_tarfile(archive_path):
+        with tarfile.open(archive_path) as tar:
+            tar.extractall(path=extract_dir)
+    elif zipfile.is_zipfile(archive_path):
+        with zipfile.ZipFile(archive_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
+    else:
+        # fallback
+        pass
+
+    log(f"   -> Extracted to {extract_dir}")
+    return extract_dir
+
 # ---------- dataset configs ----------
 def download_truthfulqa():
     # TruthfulQA: CSV on GitHub is usually easy
@@ -262,24 +289,37 @@ def download_truthfulqa():
     save_to_local("truthfulqa", questions)
 
 def download_scifact():
-    # SciFact: GitHub raw might work; if not, clone repo.
-    # File path you used is correct for that repo, but raw can still be blocked by ISP / 403 / TLS.
+    """
+    Download SciFact from official S3 bucket (as per repo script).
+    """
+    url = "https://scifact.s3-us-west-2.amazonaws.com/release/latest/data.tar.gz"
     try:
-        p = strategy_github_raw(
-            "scifact",
-            "https://raw.githubusercontent.com/allenai/scifact/main/data/claims_train.jsonl",
-            "claims_train.jsonl",
-        )
+        extract_dir = strategy_download_zip_and_extract("scifact", url)
+        # The tar usually extracts to a 'data' folder.
+        # Check structure
+        # data/claims_train.jsonl
+        
+        target_file = extract_dir / "data" / "claims_train.jsonl"
+        if not target_file.exists():
+            # maybe it extracted directly?
+            target_file = extract_dir / "claims_train.jsonl"
+            
+        if not target_file.exists():
+             # Recursive search
+             candidates = list(extract_dir.rglob("claims_train.jsonl"))
+             if candidates:
+                 target_file = candidates[0]
+             else:
+                 raise RuntimeError("claims_train.jsonl not found in SciFact archive")
+        
+        claims = parse_jsonl_extract(target_file, "claim")
+        save_to_local("scifact", claims)
+        
+        # Also copy the raw file to a known location for processing
+        shutil.copy2(target_file, RAW_DIR / "scifact" / "claims_train.jsonl")
+        
     except Exception as e:
-        log(f"   -> raw failed, fallback clone: {e}")
-        p = strategy_git_clone(
-            "scifact",
-            "https://github.com/allenai/scifact.git",
-            branch="main",
-            wanted_relpath="data/claims_train.jsonl",
-        )
-    claims = parse_jsonl_extract(p, "claim")
-    save_to_local("scifact", claims)
+        log(f"   ❌ SciFact download failed: {e}")
 
 def download_climate_fever():
     # Many mirrors; if raw fail, clone.
@@ -302,66 +342,87 @@ def download_climate_fever():
 
 def download_fever():
     """
-    FEVER dataset is often distributed via shared drives / not always in a clean GH raw.
-    Your URL might break depending on repo state or LFS or permissions.
-    We'll try:
-      1) github raw mirror you used
-      2) clone mirror repo
-      3) (optional) HF snapshot if you have a repo id (fill in if you know)
+    Download FEVER dataset (approx 185k claims).
+    We try official fever.ai links first.
     """
-    # 1) raw
+    # 1) Official
     try:
-        p = strategy_github_raw(
-            "fever",
-            "https://raw.githubusercontent.com/eunsol/fever/master/data/fever/train.jsonl",
-            "train.jsonl",
-        )
+        url = "https://fever.ai/download/fever/train.jsonl"
+        p = strategy_github_raw("fever", url, "train.jsonl")
         claims = parse_jsonl_extract(p, "claim")
         save_to_local("fever", claims)
         return
     except Exception as e:
-        log(f"   -> raw failed: {e}")
+        log(f"   -> official failed: {e}")
 
-    # 2) clone
+    # 2) Fallback to HF if official fails
     try:
-        p = strategy_git_clone(
-            "fever",
-            "https://github.com/eunsol/fever.git",
-            branch="master",
-            wanted_relpath="data/fever/train.jsonl",
-        )
-        claims = parse_jsonl_extract(p, "claim")
-        save_to_local("fever", claims)
-        return
+        # This requires huggingface_hub
+        # We need a specific good repo. 'fever/fever' might not be a valid repo id for direct snapshot.
+        # But let's try a known mirror if exists.
+        # For now, we will rely on official link mostly.
+        pass
     except Exception as e:
-        log(f"   -> clone failed: {e}")
+        log(f"   -> HF failed: {e}")
 
-    # 3) HF snapshot (you need to set the correct repo_id)
-    # Example placeholder: replace with actual HF dataset repo if you use one
-    # p = strategy_hf_snapshot("fever", "fever-dataset-repo-id", ["**/*train*.jsonl"])
-    raise RuntimeError("FEVER download failed via raw+clone. Provide a HuggingFace repo_id you want to use as source.")
+    raise RuntimeError("FEVER download failed. Please check internet connection or manually download from https://fever.ai/download/fever/train.jsonl")
+
+def download_copheme():
+    """
+    Download CoPHEME dataset from 'Lying with Truths' paper repo.
+    Repo: https://github.com/CharlesJW222/Lying_with_Truth
+    """
+    try:
+        repo_url = "https://github.com/CharlesJW222/Lying_with_Truth.git"
+        log("   ⏳ Git clone: CoPHEME (Lying_with_Truth)")
+        repo_dir = RAW_DIR / "copheme_repo"
+        git_clone_or_pull(repo_url, repo_dir, branch="main")
+        
+        # The data is in 'CoPHEME' folder inside repo
+        src_data_dir = repo_dir / "CoPHEME"
+        dst_data_dir = RAW_DIR / "copheme"
+        
+        if not src_data_dir.exists():
+            raise RuntimeError(f"CoPHEME folder not found in {repo_dir}")
+            
+        if dst_data_dir.exists():
+             shutil.rmtree(dst_data_dir)
+             
+        shutil.copytree(src_data_dir, dst_data_dir)
+        log(f"   ✅ CoPHEME data ready at {dst_data_dir}")
+        
+    except Exception as e:
+        log(f"   ❌ CoPHEME download failed: {e}")
 
 def download_hover():
     """
-    HoVer often large and may be LFS; try raw, then clone, then HF snapshot (if repo_id known).
+    HoVer: download validation/train set from official site.
+    URL: https://raw.githubusercontent.com/hover-nlp/hover/main/data/hover/hover_train_release_v1.1.json
+    Note: The file extension is .json, it is likely a JSON array, not JSONL.
     """
     try:
-        p = strategy_github_raw(
-            "hover",
-            "https://raw.githubusercontent.com/hummer-hover/hover/master/data/hover_train_release_v1.1.jsonl",
-            "hover_train_release_v1.1.jsonl",
-        )
+        url = "https://raw.githubusercontent.com/hover-nlp/hover/main/data/hover/hover_train_release_v1.1.json"
+        target_filename = "hover_train_release_v1.1.json"
+        
+        # Download
+        out_path = RAW_DIR / "hover" / target_filename
+        download_file_http(url, out_path)
+        
+        # Parse: HoVer JSON is a list of objects
+        with open(out_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            
+        # extract claims
+        claims = []
+        for item in data:
+            if "claim" in item:
+                claims.append(item["claim"])
+                
+        save_to_local("hover", claims)
+        
     except Exception as e:
-        log(f"   -> raw failed, fallback clone: {e}")
-        p = strategy_git_clone(
-            "hover",
-            "https://github.com/hummer-hover/hover.git",
-            branch="master",
-            wanted_relpath="data/hover_train_release_v1.1.jsonl",
-        )
-
-    claims = parse_jsonl_extract(p, "claim")
-    save_to_local("hover", claims)
+        log(f"   -> official download failed: {e}")
+        raise e
 
 # ---------- main ----------
 def download_all():
@@ -371,7 +432,8 @@ def download_all():
         download_scifact,
         download_climate_fever,
         download_hover,
-        download_fever,  # keep last because it may fail depending on source
+        download_fever,
+        download_copheme,
     ]
 
     failed = []

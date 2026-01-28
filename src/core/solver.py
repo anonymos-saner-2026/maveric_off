@@ -6,7 +6,14 @@
 # + Patch: track refinement stats
 #   - self.pruned_count
 #   - self.edges_removed_count
-#   so eval harness can report Avg Nodes Pruned / Edges Removed correctly.
+#   - self.edges_removed_false_refine_count
+#   - self.edges_removed_prune_count
+#
+# + Patch: SGS evidence-gated mode supported via graph.get_grounded_extension(..., require_evidence=...)
+#   - default require_evidence=True (recommended)
+#
+# + Patch: reset budget correctly at each run()
+#   - keeps self.initial_budget
 #
 # NOTE:
 # - Topology refinement logic kept as in your version.
@@ -33,7 +40,7 @@ class MaVERiCSolver:
     MaVERiC Solver v2.2
 
     SGS:
-      Uses graph.get_grounded_extension(use_shield=True, alpha=sgs_alpha).
+      Uses graph.get_grounded_extension(use_shield=True, alpha=sgs_alpha, require_evidence=sgs_require_evidence).
 
     ROI (two-stage):
       Stage 1 (cheap proxy within budget):
@@ -56,7 +63,6 @@ class MaVERiCSolver:
       g(v): expected impact via verification-aligned counterfactual SGS
       eg(v): evidence_gain around root (Markov blanket + k-hop attackers)
       g_post(v): lambda_evidence*eg(v) + (1-lambda_evidence)*g(v)
-
     """
 
     def __init__(
@@ -67,6 +73,7 @@ class MaVERiCSolver:
         topk_counterfactual: int = 25,
         # SGS hyperparam
         sgs_alpha: float = 1.0,
+        sgs_require_evidence: bool = True,
         # ROI hyperparams
         k_hop_root: int = 2,
         beta_root_flip: float = 0.7,
@@ -93,6 +100,8 @@ class MaVERiCSolver:
         root_llm_tiebreaker: Optional[Callable[[str, List[str]], Optional[str]]] = None,
     ):
         self.graph = graph
+
+        self.initial_budget = float(budget)
         self.budget = float(budget)
 
         self.tool_calls = 0
@@ -112,6 +121,7 @@ class MaVERiCSolver:
 
         self.topk_counterfactual = int(topk_counterfactual)
         self.sgs_alpha = float(sgs_alpha)
+        self.sgs_require_evidence = bool(sgs_require_evidence)
 
         self.k_hop_root = int(k_hop_root)
         self.beta_root_flip = float(beta_root_flip)
@@ -147,6 +157,15 @@ class MaVERiCSolver:
 
         self.verified_true_ids: Set[str] = set()
         self.verified_false_ids: Set[str] = set()
+
+        self.verify_error: bool = False
+
+    # --------------------------
+    # Convenience: stats for eval harness
+    # --------------------------
+    @property
+    def edges_removed_total(self) -> int:
+        return int(self.edges_removed_count + self.edges_removed_false_refine_count + self.edges_removed_prune_count)
 
     # --------------------------
     # Logging
@@ -223,9 +242,11 @@ Reply with only one of: the node ID (exact) or ABSTAIN.
     # --------------------------
     def _prune_node(self, node_id: str) -> None:
         if node_id in self.graph.nx_graph:
-            # count as one pruned node (explicit prune)
             self.pruned_count += 1
-            self.edges_removed_prune_count += int(self.graph.nx_graph.degree(node_id))
+            try:
+                self.edges_removed_prune_count += int(self.graph.nx_graph.degree(node_id))
+            except Exception:
+                self.edges_removed_prune_count += 0
         self.graph.remove_node(node_id)
         self.flagged_adversaries.discard(node_id)
 
@@ -464,7 +485,13 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
     # SGS calls
     # --------------------------
     def _sgs(self) -> Set[str]:
-        return set(self.graph.get_grounded_extension(use_shield=True, alpha=self.sgs_alpha))
+        return set(
+            self.graph.get_grounded_extension(
+                use_shield=True,
+                alpha=self.sgs_alpha,
+                require_evidence=self.sgs_require_evidence,
+            )
+        )
 
     def _sgs_with_temp_tau(self, node_id: str, value: bool) -> Set[str]:
         node = self.graph.nodes.get(node_id)
@@ -477,7 +504,13 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         node.is_verified = True
         node.ground_truth = bool(value)
         try:
-            out = set(self.graph.get_grounded_extension(use_shield=True, alpha=self.sgs_alpha))
+            out = set(
+                self.graph.get_grounded_extension(
+                    use_shield=True,
+                    alpha=self.sgs_alpha,
+                    require_evidence=self.sgs_require_evidence,
+                )
+            )
         finally:
             node.is_verified = old_is_verified
             node.ground_truth = old_gt
@@ -502,7 +535,12 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
         return delta_root, delta_local
 
-    def _expected_impact(self, node_id: str, S_curr: Set[str], Nk_atk: Set[str]) -> Tuple[float, Tuple[int, float, int, float]]:
+    def _expected_impact(
+        self,
+        node_id: str,
+        S_curr: Set[str],
+        Nk_atk: Set[str],
+    ) -> Tuple[float, Tuple[int, float, int, float]]:
         pi = self._outcome_prior_true(node_id)
 
         S_T = self._sgs_with_temp_tau(node_id, True)
@@ -572,7 +610,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
 
         candidates = []
         lam = float(max(0.0, min(1.0, self.lambda_evidence)))
-        for _, node, nid, tool, cost, s, omega in shortlist:
+        for _, node, nid, tool, cost, s, _omega_stage1 in shortlist:
             g_val, dbg = self._expected_impact(nid, S_curr=S_curr, Nk_atk=Nk_atk)
 
             if post_root:
@@ -634,6 +672,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                         self.graph.nx_graph.remove_edge(node_id, tid)
                         self.edges_removed_count += 1
 
+                    # tiny refine charge
                     self._spend(0.05)
 
                     if is_support:
@@ -696,7 +735,14 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         self.tool_calls += 1
 
         node.is_verified = True
-        is_true = RealToolkit.verify_claim(tool_type=tool, claim=node.content)
+        try:
+            is_true = RealToolkit.verify_claim(tool_type=tool, claim=node.content)
+        except Exception as e:
+            node.ground_truth = None
+            self.verify_error = True
+            self._add_log(f"⚠️ verify_claim exception on {node.id}: {e}")
+            return None
+
         if is_true is None:
             node.ground_truth = None
             self.verify_error = True
@@ -715,6 +761,10 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
     # Core runner
     # --------------------------
     def run(self) -> Tuple[Set[str], Optional[bool]]:
+        # Reset budget per run (IMPORTANT)
+        self.budget = float(self.initial_budget)
+
+        # Reset per-node verification state
         for node in self.graph.nodes.values():
             node.is_verified = False
             node.ground_truth = None
@@ -734,6 +784,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
         self.edges_removed_false_refine_count = 0
         self.edges_removed_prune_count = 0
 
+        # Root selection
         if not self.root_id:
             claim = getattr(self.graph, "claim", None)
             self.root_id = self.graph.find_semantic_root(
@@ -743,7 +794,8 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
                 tie_margin=self.root_tie_margin,
             )
 
-        while self.budget > 0:
+        # Main loop
+        while self.budget > 1e-12:
             active = [
                 n for n in self.graph.nodes.values()
                 if (not n.is_verified) and (n.id in self.graph.nx_graph)
@@ -754,7 +806,7 @@ Output: PYTHON_EXEC, WEB_SEARCH, or COMMON_SENSE.
             S_curr = self._sgs()
             g_atk = self._attack_only_graph()
 
-            Nk_atk = set()
+            Nk_atk: Set[str] = set()
             if self.root_id and self.root_id in g_atk:
                 ug = g_atk.to_undirected(as_view=True)
                 visited = {self.root_id}

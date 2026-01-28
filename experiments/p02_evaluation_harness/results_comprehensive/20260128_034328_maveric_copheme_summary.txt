@@ -1,0 +1,73 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: /home/tungnvt5re/research-projects/reinforcement_learning_intro_books/maveric_ijcai/experiments/p02_evaluation_harness/results_comprehensive/20260128_034328_maveric_copheme.jsonl
+Dataset: copheme
+Method: maveric
+Samples: 15 (verified: 13)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.6154 (8/13)
+Precision: 0.0000
+Recall:    0.0000
+F1:        0.0000
+
+Confusion Matrix:
+  TP:   0  FP:   5
+  FN:   0  TN:   8
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 3.74 ± 1.48
+Min Budget: 1.00
+Max Budget: 5.00
+
+Avg Tool Calls: 3.73 ± 1.48
+Total Tool Calls: 56
+
+Tool Call Breakdown:
+  TOTAL          :   56 (100.0%)
+
+Avg Runtime: 424.79s per sample
+Total Runtime: 6371.91s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.67 ± 1.35
+Avg Edges Removed (true refine): 0.40 ± 0.80
+Avg Edges Removed (false refine): 0.40 ± 0.88
+Avg Edges Removed (prune): 1.00 ± 1.67
+Avg SGS Size: 2.53 ± 2.16
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (7 errors)
+----------------------------------------------------------------------
+
+1. copheme_576192621351145472
+   Claim: Putin has died...
+   Predicted: None, Gold: False
+
+2. copheme_576548875072335872
+   Claim: Putin has died...
+   Predicted: None, Gold: False
+
+3. copheme_552993818816299008
+   Claim: Ahmed Merabet was the first victim of the Charlie Hebdo attack...
+   Predicted: True, Gold: False
+
+4. copheme_552984916070531072
+   Claim: Ahmed Merabet was the first victim of the Charlie Hebdo attack...
+   Predicted: True, Gold: False
+
+5. copheme_552991544731774976
+   Claim: Ahmed Merabet was the first victim of the Charlie Hebdo attack...
+   Predicted: True, Gold: False
+
+   ... and 2 more errors
+
+======================================================================

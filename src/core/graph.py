@@ -37,6 +37,7 @@ class ArgumentationGraph:
         self.nodes: Dict[str, ArgumentNode] = {}
         self.claim: Optional[str] = None
         self.root_id_override: Optional[str] = None
+        self.atomicity_warnings: List[str] = []
 
     # ------------------------------------------------------------------
     # Basic graph construction
@@ -92,7 +93,7 @@ class ArgumentationGraph:
         g_attack = nx.DiGraph()
         g_attack.add_nodes_from(self.nx_graph.nodes())
         for u, v, d in self.nx_graph.edges(data=True):
-            if d.get("type") == "attack":
+            if (d or {}).get("type") == "attack":
                 g_attack.add_edge(u, v)
         return g_attack
 
@@ -102,7 +103,7 @@ class ArgumentationGraph:
         """
         shielded: Set[str] = set()
         for u, v, d in self.nx_graph.edges(data=True):
-            if d.get("type") != "support":
+            if (d or {}).get("type") != "support":
                 continue
             if self._is_verified_true(u):
                 shielded.add(v)
@@ -173,19 +174,38 @@ class ArgumentationGraph:
     # ------------------------------------------------------------------
     # Shielded grounded semantics (SGS)
     # ------------------------------------------------------------------
-    def get_grounded_extension(self, use_shield: bool = True, alpha: float = 1.0) -> Set[str]:
+    def get_grounded_extension(
+        self,
+        use_shield: bool = True,
+        alpha: float = 1.0,
+        require_evidence: bool = True,
+    ) -> Set[str]:
         """
         Compute the SGS accepted set as a grounded-style least fixed point with a shield rule.
 
-        Conflict-free guarantee (practical):
-        - We never accept a node that is attacked by an already accepted node (v in Def(A)).
-        - We also never accept a node that attacks an already accepted node (OutAtk(v) intersects A).
-        - Within the same iteration, we conservatively avoid accepting nodes that are attacked by
-            other candidates in that iteration.
+        Key behaviors:
+        - Verified-false nodes are excluded from active_nodes.
+        - Conflict-free (practical):
+            * never accept a node attacked by an already accepted node (v in defeated)
+            * never accept a node that attacks an already accepted node
+            * within-round: drop candidates attacked by other candidates
+
+        Evidence-gated variant (recommended):
+        - If require_evidence=True:
+            * even if v has no alive attackers, we only accept v if:
+                - v is verified_true, OR
+                - v has at least one verified_true supporter (i.e., is shielded)
+        This avoids accepting "uncontested" but unverified / noisy atomic claims.
+
+        Shield rule:
+        - If v has alive attackers, it can still be accepted if:
+            sup_count >= alpha * atk_count
+        where sup_count counts ONLY verified_true supporters (when use_shield=True).
         """
         if alpha <= 0:
             raise ValueError("alpha must be > 0")
 
+        # Active nodes: exclude verified-false nodes
         active_nodes: Set[str] = {nid for nid in self.nx_graph.nodes() if not self._is_verified_false(nid)}
         if not active_nodes:
             return set()
@@ -194,10 +214,11 @@ class ArgumentationGraph:
         supporters_true_of: Dict[str, Set[str]] = {v: set() for v in active_nodes}
         outgoing_attack: Dict[str, Set[str]] = {u: set() for u in active_nodes}
 
+        # Build local adjacency views restricted to active_nodes
         for u, v, d in self.nx_graph.edges(data=True):
             if u not in active_nodes or v not in active_nodes:
                 continue
-            et = d.get("type")
+            et = (d or {}).get("type")
             if et == "attack":
                 attackers_of[v].add(u)
                 outgoing_attack[u].add(v)
@@ -206,7 +227,7 @@ class ArgumentationGraph:
                     supporters_true_of[v].add(u)
 
         accepted: Set[str] = set()   # A
-        defeated: Set[str] = set()   # Def(A) = nodes attacked by A
+        defeated: Set[str] = set()   # Def(A): nodes attacked by accepted nodes
 
         while True:
             candidates: Set[str] = set()
@@ -219,19 +240,26 @@ class ArgumentationGraph:
                 if v in defeated:
                     continue
 
-                # NEW: cannot accept nodes that attack already-accepted nodes
+                # cannot accept nodes that attack already-accepted nodes
                 if outgoing_attack.get(v, set()) & accepted:
                     continue
 
                 alive_attackers = attackers_of[v] - defeated
+
+                # evidence_ok: verified_true(v) OR has >=1 verified_true supporter (shielded)
+                evidence_ok = self._is_verified_true(v) or (len(supporters_true_of.get(v, set())) > 0)
+
+                # Case 1) No alive attackers
                 if not alive_attackers:
-                    candidates.add(v)
+                    if (not require_evidence) or evidence_ok:
+                        candidates.add(v)
                     continue
 
+                # Case 2) Has alive attackers -> shield rule
                 if use_shield:
-                    sup_count = len(supporters_true_of[v])
+                    sup_count = len(supporters_true_of.get(v, set()))
                     atk_count = len(alive_attackers)
-                    if sup_count >= alpha * atk_count:
+                    if float(sup_count) >= float(alpha) * float(atk_count):
                         candidates.add(v)
 
             if not candidates:
@@ -243,13 +271,13 @@ class ArgumentationGraph:
                 attacked_inside |= (outgoing_attack.get(u, set()) & candidates)
 
             newly_accepted = candidates - attacked_inside
-
             if not newly_accepted:
                 break
 
             accepted |= newly_accepted
+
+            # update defeated set: anything attacked by newly accepted nodes
             for a in newly_accepted:
                 defeated |= outgoing_attack.get(a, set())
 
         return accepted
-

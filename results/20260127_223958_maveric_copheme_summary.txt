@@ -1,0 +1,47 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: results/20260127_223958_maveric_copheme.jsonl
+Dataset: copheme
+Method: maveric
+Samples: 5 (verified: 5)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  1.0000 (5/5)
+Precision: 0.0000
+Recall:    0.0000
+F1:        0.0000
+
+Confusion Matrix:
+  TP:   0  FP:   0
+  FN:   0  TN:   5
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 4.22 ± 1.16
+Min Budget: 2.00
+Max Budget: 5.00
+
+Avg Tool Calls: 4.20 ± 1.17
+Total Tool Calls: 21
+
+Tool Call Breakdown:
+  TOTAL          :   21 (100.0%)
+
+Avg Runtime: 354.16s per sample
+Total Runtime: 1770.78s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 2.00 ± 1.10
+Avg Edges Removed (true refine): 0.40 ± 0.80
+Avg Edges Removed (false refine): 0.20 ± 0.40
+Avg Edges Removed (prune): 0.00 ± 0.00
+Avg SGS Size: 3.20 ± 2.64
+
+======================================================================

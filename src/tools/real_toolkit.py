@@ -1565,6 +1565,197 @@ Output only the rewritten factual claim (no quotes).
             return None # Difficult to verify without numbers or direct statement
 
         return None
+    
+    # ---------- Hybrid Multi-hop Reasoning Enhancement ----------
+    @staticmethod
+    def _extract_bridge_entities(text: str) -> Dict[str, Any]:
+        """
+        Stage 1: Lightweight regex-based entity detection for bridge patterns.
+        Returns detected entities and pattern type without heavy NLP.
+        """
+        entities = []
+        pattern_type = None
+        has_bridge = False
+        
+        # Pattern 1: "the [ROLE] [ENTITY] [RELATION]" (HoVer-style)
+        # Example: "the artist Ossian Elgström studied with in 1907"
+        match = re.search(
+            r"the (artist|painter|athlete|fighter|person|meteorologist|actor|singer|writer|director|coach) ([A-Z][\w]+(?:\s+[A-Z][\w]+)+) (studied with|trained (?:by|with)|worked with|replaced|succeeded|composed (?:for|by))",
+            text
+        )
+        if match:
+            role, entity_name, relation = match.groups()
+            entities.append(entity_name)
+            pattern_type = f"{role}_{relation.replace(' ', '_')}"
+            has_bridge = True
+        
+        # Pattern 2: "[ENTITY1] and this/the [DESCRIPTION] both [ACTION]"
+        # Example: "Red White & Crüe and this athlete both fight"
+        match = re.search(
+            r"([A-Z][\w\s&]+) and (?:this|the) ([\w\s]+) both ([\w]+)",
+            text
+        )
+        if match:
+            entity1, description, action = match.groups()
+            entities.append(entity1.strip())
+            pattern_type = f"dual_entity_{action}"
+            has_bridge = True
+        
+        # Pattern 3: "at [PLACE] that [PROPERTY]"
+        # Example: "took place at an arena that currently goes by the name TD Garden"
+        match = re.search(
+            r"at (?:an|a|the) (arena|venue|location|building|stadium|theater) that (currently|formerly|now|previously)",
+            text
+        )
+        if match:
+            place_type, temporal = match.groups()
+            pattern_type = "place_evolution"
+            has_bridge = True
+        
+        return {
+            "has_bridge": has_bridge,
+            "entities": entities,
+            "pattern_type": pattern_type
+        }
+    
+    @staticmethod
+    def _decompose_multihop_claim(clean_fact: str, entity_info: Dict[str, Any]) -> Optional[List[Dict[str, str]]]:
+        """
+        Stage 2: LLM-powered query decomposition with entity hints.
+        Returns list of sub-queries with metadata.
+        """
+        if not entity_info.get("has_bridge"):
+            return None
+        
+        entities_str = ", ".join(entity_info.get("entities", []))
+        pattern = entity_info.get("pattern_type", "unknown")
+        
+        prompt = f"""Decompose this multi-hop claim into 2-3 sequential sub-questions for fact-checking.
+
+Claim: "{clean_fact}"
+Known entities: [{entities_str}]
+Pattern type: {pattern}
+
+Rules:
+1. First question should resolve the "bridge entity" (the unknown person/thing/place)
+2. Use [ENTITY_1], [ENTITY_2] as placeholders in subsequent questions
+3. Each question must be searchable on Google (keep it simple)
+4. Limit to 3 questions maximum
+
+Output strict JSON:
+{{
+  "sub_queries": [
+    {{"query": "Who/What question to find bridge entity", "entity_type": "person|place|organization"}},
+    {{"query": "Verification question using [ENTITY_1]", "entity_type": "attribute"}}
+  ]
+}}"""
+        
+        try:
+            res = client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+            )
+            raw = (res.choices[0].message.content or "").strip()
+            data = _safe_json_loads(raw)
+            if not isinstance(data, dict):
+                m = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+                data = _safe_json_loads(m.group(0)) if m else None
+            
+            if isinstance(data, dict) and "sub_queries" in data:
+                sub_queries = data["sub_queries"]
+                if isinstance(sub_queries, list) and len(sub_queries) >= 2:
+                    return sub_queries[:3]  # Limit to 3
+        except Exception as e:
+            print(f"        ⚠️ Multi-hop decomposition failed: {e}")
+            return None
+        
+        return None
+    
+    @staticmethod
+    def _extract_entity_from_evidence(evidence_text: str, entity_type: str, query_context: str) -> str:
+        """
+        Extract specific entity from search results using LLM.
+        Returns the extracted entity name.
+        """
+        prompt = f"""From the search results below, extract the answer to this question.
+Return ONLY the entity name (person/place/thing), nothing else.
+
+Question: {query_context}
+Expected type: {entity_type}
+
+Search results:
+{evidence_text[:600]}
+
+Answer (entity name only, max 5 words):"""
+        
+        try:
+            res = client.chat.completions.create(
+                model=JUDGE_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+            )
+            entity_name = (res.choices[0].message.content or "").strip().strip('"').strip("'")
+            # Clean up common artifacts
+            entity_name = entity_name.split("\n")[0]  # Take first line only
+            entity_name = entity_name[:50]  # Max 50 chars
+            return entity_name if len(entity_name) < 50 else ""
+        except Exception:
+            return ""
+    
+    @staticmethod
+    def _execute_hybrid_multihop(clean_fact: str, sub_queries: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        """
+        Stage 3: Sequential execution of sub-queries with entity resolution.
+        Returns combined evidence from all search steps.
+        """
+        all_hits = []
+        entity_cache = {}
+        
+        print(f"        🧩 Multi-hop mode: {len(sub_queries)} steps detected")
+        
+        for i, sub_q_info in enumerate(sub_queries):
+            query = sub_q_info.get("query", "")
+            entity_type = sub_q_info.get("entity_type", "unknown")
+            
+            # Substitute cached entities into query
+            for placeholder, value in entity_cache.items():
+                query = query.replace(placeholder, value)
+            
+            if not query.strip():
+                continue
+            
+            # Execute search for this step
+            print(f"        🔗 Step {i+1}/{len(sub_queries)}: {query[:80]}...")
+            
+            try:
+                serper_hits = RealToolkit._serper_search(query, num=6)
+                ddg_hits = RealToolkit._ddg_search(query, max_results=6)
+                step_hits = serper_hits + ddg_hits
+                all_hits.extend(step_hits)
+                
+                # Extract entity if needed for next steps
+                remaining_steps = sub_queries[i+1:]
+                if remaining_steps and any(f"[ENTITY_{i+1}]" in str(s) for s in remaining_steps):
+                    evidence_text = _summarize_hits(step_hits, max_n=4)
+                    if evidence_text.strip():
+                        entity_name = RealToolkit._extract_entity_from_evidence(
+                            evidence_text, entity_type, query
+                        )
+                        if entity_name:
+                            entity_cache[f"[ENTITY_{i+1}]"] = entity_name
+                            print(f"        ├─ Resolved [ENTITY_{i+1}] = '{entity_name}'")
+                        else:
+                            print(f"        ├─ ⚠️ Failed to extract [ENTITY_{i+1}]")
+                
+                time.sleep(0.1)  # Rate limiting
+            except Exception as e:
+                print(f"        ├─ ⚠️ Step {i+1} search error: {e}")
+                continue
+        
+        print(f"        └─ Multi-hop complete: {len(all_hits)} total evidence snippets")
+        return all_hits
+    
     @staticmethod
     # ---------- Multi-hop Reasoning ----------
     @staticmethod
@@ -2408,18 +2599,40 @@ Statement: {clean_fact}
             # WEB_SEARCH path (stance-aware RAG+judge + calibrated confidence)
             # ------------------------
             if tool_type == "WEB_SEARCH":
-                clean_fact = RealToolkit._distill_claim(claim)
+                # Optimization: Skip distillation for short, clean claims
+                claim_stripped = RealToolkit._strip_claim_prefix(claim)
+                if len(claim_stripped) < 100 and not re.search(r'\b(I think|maybe|probably|in my opinion|perhaps|might be)\b', claim, re.IGNORECASE):
+                    clean_fact = claim_stripped
+                else:
+                    clean_fact = RealToolkit._distill_claim(claim)
 
                 # NEW: meta-claim rewrite
                 if RealToolkit._is_meta_discourse_claim(clean_fact):
                     clean_fact = RealToolkit._rewrite_meta_to_factual(clean_fact)
 
-                queries_rounds: List[List[str]] = RealToolkit._make_queries(clean_fact)
-                if FAST_MODE:
-                    queries_rounds = queries_rounds[:1]
-
+                # HYBRID MULTI-HOP ENHANCEMENT: Try decomposition first
+                entity_info = RealToolkit._extract_bridge_entities(clean_fact)
+                sub_queries = None
+                if entity_info.get("has_bridge"):
+                    sub_queries = RealToolkit._decompose_multihop_claim(clean_fact, entity_info)
+                
                 all_serper: List[Dict[str, str]] = []
                 all_ddg: List[Dict[str, str]] = []
+                
+                # If multi-hop detected and decomposed successfully, use hybrid path
+                if sub_queries and len(sub_queries) >= 2:
+                    multihop_hits = RealToolkit._execute_hybrid_multihop(clean_fact, sub_queries)
+                    # Distribute hits between serper and ddg for compatibility
+                    for i, hit in enumerate(multihop_hits):
+                        if i % 2 == 0:
+                            all_serper.append(hit)
+                        else:
+                            all_ddg.append(hit)
+                else:
+                    # Standard search flow (existing code)
+                    queries_rounds: List[List[str]] = RealToolkit._make_queries(clean_fact)
+                    if FAST_MODE:
+                        queries_rounds = queries_rounds[:1]
 
                 def run_round(qs: List[str], round_idx: int) -> None:
                     nonlocal all_serper, all_ddg
@@ -2446,8 +2659,9 @@ Statement: {clean_fact}
                         print(f"        ⚠️ No hits, retrying round {ridx} once...")
                         run_round(qs, ridx)
 
+                    # Optimization: Lower threshold to exit search rounds earlier
                     trusted_cnt = sum(1 for h in (all_serper + all_ddg) if _is_trusted_domain(h.get("url", "")))
-                    if trusted_cnt >= (3 if FAST_MODE else 6):
+                    if trusted_cnt >= (2 if FAST_MODE else 4):
                         break
 
                 def dedup(hits: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -2515,7 +2729,8 @@ Statement: {clean_fact}
                     print(f"        ⚠️ Heuristic skipped (coverage={coverage_ok}, trusted={trusted_cnt})")
 
                 evidence_base = trusted_hits if trusted_hits else combined_hits
-                max_evidence = 5 if FAST_MODE else 8
+                # Optimization: Reduce evidence pool size for faster LLM processing
+                max_evidence = 4 if FAST_MODE else 6
                 evidence_lines = _summarize_hits(evidence_base, max_n=max_evidence) if evidence_base else ""
 
                 if not evidence_lines.strip():
@@ -2533,6 +2748,14 @@ Statement: {clean_fact}
                     f"llm_conf={jr.llm_confidence:.2f} econf={jr.evidence_confidence:.2f} final_conf={jr.final_confidence:.2f} "
                     f"support={jr.support_ids} refute={jr.refute_ids} rationale={jr.rationale}"
                 )
+
+                # Optimization: Early-exit for high-confidence verdicts (≥0.80)
+                # This skips semantic fallback and common sense LLM calls when already confident
+                if jr.verdict is not None and jr.final_confidence >= 0.80:
+                    RealToolkit._cache[cache_key] = bool(jr.verdict)
+                    status_icon = "✅" if jr.verdict else "❌"
+                    print(f"        └─ {status_icon} Final Result (high-conf): {'TRUE' if jr.verdict else 'FALSE'}")
+                    return bool(jr.verdict)
 
                 # NEW: accept only if above threshold; otherwise use semantic fallback then vote
                 if jr.verdict is True and jr.final_confidence >= RealToolkit.JUDGE_TRUE_MIN_FINAL_CONF:

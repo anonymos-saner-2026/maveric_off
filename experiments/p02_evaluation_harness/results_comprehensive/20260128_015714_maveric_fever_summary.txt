@@ -1,0 +1,63 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: /home/tungnvt5re/research-projects/reinforcement_learning_intro_books/maveric_ijcai/experiments/p02_evaluation_harness/results_comprehensive/20260128_015714_maveric_fever.jsonl
+Dataset: fever
+Method: maveric
+Samples: 15 (verified: 13)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.9231 (12/13)
+Precision: 1.0000
+Recall:    0.9000
+F1:        0.9474
+
+Confusion Matrix:
+  TP:   9  FP:   0
+  FN:   1  TN:   3
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 4.54 ± 0.88
+Min Budget: 2.00
+Max Budget: 5.00
+
+Avg Tool Calls: 4.53 ± 0.88
+Total Tool Calls: 68
+
+Tool Call Breakdown:
+  TOTAL          :   68 (100.0%)
+
+Avg Runtime: 295.31s per sample
+Total Runtime: 4429.72s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.07 ± 0.93
+Avg Edges Removed (true refine): 0.20 ± 0.54
+Avg Edges Removed (false refine): 0.20 ± 0.54
+Avg Edges Removed (prune): 0.27 ± 0.57
+Avg SGS Size: 4.27 ± 1.98
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (3 errors)
+----------------------------------------------------------------------
+
+1. fever_40190
+   Claim: Cyndi Lauper won the Best New Artist award at the 27th Grammy Awards in 1985....
+   Predicted: None, Gold: True
+
+2. fever_76253
+   Claim: There is a movie called The Hunger Games....
+   Predicted: None, Gold: True
+
+3. fever_179616
+   Claim: Michael Giacchino composed the score for Doctor Strange....
+   Predicted: False, Gold: True
+
+======================================================================

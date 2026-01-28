@@ -18,6 +18,7 @@ This matches the patched run_eval.py that expects:
 from __future__ import annotations
 
 import json
+import os
 from typing import List, Dict, Any, Optional
 from datasets import load_dataset
 
@@ -236,9 +237,53 @@ def load_dataset_by_name(dataset_name: str, max_samples: Optional[int] = None) -
     if dataset_name == "truthfulqa":
         return load_truthfulqa(max_samples=max_samples)
     if dataset_name == "fever":
+        # Prefer local processed file if available, else standard loader
+        local_path = "data/benchmarks_processed/fever_labeled.json"
+        if os.path.exists(local_path):
+            return load_local_benchmark("fever", local_path, max_samples)
         return load_fever(max_samples=max_samples)
+    if dataset_name == "copheme":
+        return load_local_benchmark("copheme", "data/benchmarks_processed/copheme_labeled.json", max_samples)
+    if dataset_name == "hover":
+        return load_local_benchmark("hover", "data/benchmarks_processed/hover_labeled.json", max_samples)
+    if dataset_name == "scifact":
+        return load_local_benchmark("scifact", "data/benchmarks_processed/scifact_labeled.json", max_samples)
 
-    raise ValueError(f"Unknown dataset: {dataset_name}. Supported: truthfulqa, fever")
+    raise ValueError(f"Unknown dataset: {dataset_name}. Supported: truthfulqa, fever, copheme, hover, scifact")
+
+def load_local_benchmark(dataset_name: str, path: str, max_samples: Optional[int] = None) -> List[Dict[str, Any]]:
+    print(f"Loading {dataset_name} from {path}...")
+    samples = []
+    if not os.path.exists(path):
+        print(f"⚠️ File not found: {path}")
+        return []
+        
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        
+    for idx, item in enumerate(data):
+        if max_samples and len(samples) >= max_samples:
+            break
+            
+        # Map labels to boolean if possible
+        label_str = item.get("label", "").upper()
+        if label_str == "SUPPORTS":
+            label = True
+        elif label_str == "REFUTED" or label_str == "REFUTES":
+            label = False
+        else:
+            continue # Skip NEI or others
+            
+        samples.append({
+            "id": f"{dataset_name}_{item.get('id', idx)}",
+            "dataset": dataset_name,
+            "claim": item.get("claim"),
+            "label": label,
+            "evidence": item.get("evidence", [])
+        })
+    
+    print(f"Loaded {len(samples)} samples from {dataset_name}")
+    return samples
 
 
 if __name__ == "__main__":

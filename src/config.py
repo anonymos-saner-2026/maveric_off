@@ -4,7 +4,7 @@ from openai import OpenAI
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-SERPER_API_KEY = "2b1a411ce765bc5bd2c3614074df79f17ac16807"
+SERPER_API_KEY = os.getenv("SERPER_API_KEY", "3cefc8851d21371942d5cfb80f23e9648a667de4")
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.yescale.io/v1")
 
 # Models configuration
@@ -14,8 +14,8 @@ GENERATOR_MODEL = "gpt-4o-mini"
 PARSER_MODEL = "gpt-4o-mini"
 JUDGE_MODEL = "gpt-4o-mini"
 
-# Fast mode toggles (optional)
-FAST_MODE = os.getenv("MAVERIC_FAST_MODE", "0") == "1"
+# Fast mode toggles (enabled by default for faster benchmarking)
+FAST_MODE = os.getenv("MAVERIC_FAST_MODE", "1") == "1"
 
 TOOLS_CONFIG = {
     "WEB_SEARCH": {"cost": 5.0, "desc": "Google Search via Serper API"},

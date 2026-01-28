@@ -1,0 +1,73 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: /home/tungnvt5re/research-projects/reinforcement_learning_intro_books/maveric_ijcai/experiments/p02_evaluation_harness/results_comprehensive/20260128_053716_maveric_hover.jsonl
+Dataset: hover
+Method: maveric
+Samples: 15 (verified: 15)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.4667 (7/15)
+Precision: 0.6667
+Recall:    0.4000
+F1:        0.5000
+
+Confusion Matrix:
+  TP:   4  FP:   2
+  FN:   6  TN:   3
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 4.75 ± 0.41
+Min Budget: 4.05
+Max Budget: 5.00
+
+Avg Tool Calls: 4.73 ± 0.44
+Total Tool Calls: 71
+
+Tool Call Breakdown:
+  TOTAL          :   71 (100.0%)
+
+Avg Runtime: 455.09s per sample
+Total Runtime: 6826.34s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.33 ± 0.87
+Avg Edges Removed (true refine): 0.40 ± 0.71
+Avg Edges Removed (false refine): 0.20 ± 0.54
+Avg Edges Removed (prune): 1.47 ± 3.12
+Avg SGS Size: 5.27 ± 1.88
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (8 errors)
+----------------------------------------------------------------------
+
+1. hover_330ca632-e83f-4011-b11b-0d0158145036
+   Claim: Skagen Painter Peder Severin Krøyer favored naturalism along with Theodor Esbern...
+   Predicted: False, Gold: True
+
+2. hover_f2f4b69d-d833-4f6d-a630-f156a2559af6
+   Claim: Skagen Painter, who painted the 1893 painting Roses, favored naturalism. Theodor...
+   Predicted: True, Gold: False
+
+3. hover_b07fde45-fda5-49ab-b845-4ad2c88d46c6
+   Claim: Skagen Painter, who painted the 1893 painting Roses, favored naturalism. Theodor...
+   Predicted: False, Gold: True
+
+4. hover_c7dacde1-d47f-48e2-87dc-7f46ae9b97c0
+   Claim: Skagen Painter Peder Severin Krøyer favored naturalism. As did Theodor Esbern Ph...
+   Predicted: False, Gold: True
+
+5. hover_3be7b926-2b30-4130-86a1-3fccc4ee2655
+   Claim: Red, White & Crüe and this athlete both fight. The french fighter was trained by...
+   Predicted: True, Gold: False
+
+   ... and 3 more errors
+
+======================================================================

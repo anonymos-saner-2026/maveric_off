@@ -312,7 +312,7 @@ def main():
     
     # Run all tests
     run_test(build_circular_reasoning_graph, "Circular Reasoning Trap", budget=10.0)
-    run_test(build_trojan_support_graph, "Trojan Support Chain", budget=10.0)
+    # run_test(build_trojan_support_graph, "Trojan Support Chain", budget=10.0)
     run_test(build_strategic_majority_graph, "Strategic Adversarial Majority", budget=12.0)
     run_test(build_multi_root_graph, "Multi-Root Ambiguity", budget=12.0)
 

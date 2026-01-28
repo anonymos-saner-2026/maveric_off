@@ -712,8 +712,39 @@ def main() -> None:
     print(f"Results saved to: {output_path}")
     print(f"\nFinal Accuracy: {final_acc:.2%}")
     print(f"Total samples: {len(results)} (verified: {len(verified)})")
-    print("\nRun summarize.py to generate detailed metrics:")
-    print(f"  python summarize.py {output_path}")
+    
+    # --- Auto-Summarize ---
+    print("\n" + "=" * 70)
+    print("Generating Summary Report...")
+    print("=" * 70)
+    
+    try:
+        from summarize import print_summary
+        import contextlib
+        from io import StringIO
+        
+        # 1. Print to console
+        print_summary(results, output_path)
+        
+        # 2. Write to summary file
+        summary_path = output_path.replace(".jsonl", "_summary.txt")
+        
+        # Capture the output of print_summary
+        buf = StringIO()
+        with contextlib.redirect_stdout(buf):
+            print_summary(results, output_path)
+        summary_text = buf.getvalue()
+        
+        with open(summary_path, "w", encoding="utf-8") as f_sum:
+            f_sum.write(summary_text)
+            
+        print(f"\n✅ Detailed summary saved to: {summary_path}")
+        
+    except Exception as e:
+        print(f"⚠️ Failed to auto-summarize: {e}")
+        print("You can try running summarize.py manually.")
+
+    print("\n" + "=" * 70)
 
 
 if __name__ == "__main__":

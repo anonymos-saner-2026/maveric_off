@@ -1,0 +1,59 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: /home/tungnvt5re/research-projects/reinforcement_learning_intro_books/maveric_ijcai/experiments/p02_evaluation_harness/results_comprehensive/20260128_065114_maveric_scifact.jsonl
+Dataset: scifact
+Method: maveric
+Samples: 15 (verified: 15)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.8667 (13/15)
+Precision: 0.8462
+Recall:    1.0000
+F1:        0.9167
+
+Confusion Matrix:
+  TP:  11  FP:   2
+  FN:   0  TN:   2
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 4.34 ± 1.25
+Min Budget: 1.00
+Max Budget: 5.00
+
+Avg Tool Calls: 4.33 ± 1.25
+Total Tool Calls: 65
+
+Tool Call Breakdown:
+  TOTAL          :   65 (100.0%)
+
+Avg Runtime: 295.77s per sample
+Total Runtime: 4436.51s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.07 ± 0.68
+Avg Edges Removed (true refine): 0.00 ± 0.00
+Avg Edges Removed (false refine): 0.53 ± 0.72
+Avg Edges Removed (prune): 0.27 ± 0.57
+Avg SGS Size: 4.73 ± 2.11
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (2 errors)
+----------------------------------------------------------------------
+
+1. scifact_28
+   Claim: A T helper 2 cell (Th2) environment impedes disease development in patients with...
+   Predicted: True, Gold: False
+
+2. scifact_32
+   Claim: A country's Vaccine Alliance (GAVI) eligibility is not indictivate of accelerate...
+   Predicted: True, Gold: False
+
+======================================================================
