@@ -1,0 +1,47 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: results/20260128_090919_maveric_hover.jsonl
+Dataset: hover
+Method: maveric
+Samples: 3 (verified: 3)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  1.0000 (3/3)
+Precision: 1.0000
+Recall:    1.0000
+F1:        1.0000
+
+Confusion Matrix:
+  TP:   2  FP:   0
+  FN:   0  TN:   1
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 5.00 ± 0.00
+Min Budget: 5.00
+Max Budget: 5.00
+
+Avg Tool Calls: 5.00 ± 0.00
+Total Tool Calls: 15
+
+Tool Call Breakdown:
+  TOTAL          :   15 (100.0%)
+
+Avg Runtime: 321.41s per sample
+Total Runtime: 964.22s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 0.67 ± 0.47
+Avg Edges Removed (true refine): 0.00 ± 0.00
+Avg Edges Removed (false refine): 0.00 ± 0.00
+Avg Edges Removed (prune): 0.33 ± 0.47
+Avg SGS Size: 5.67 ± 1.25
+
+======================================================================

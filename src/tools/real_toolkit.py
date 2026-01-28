@@ -21,6 +21,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 import math
 import json
@@ -724,32 +725,107 @@ Output only the rewritten factual claim (no quotes).
 
         return [r1, r2, r3]
 
+    # ---------- Serper API Key Rotation ----------
+    _SERPER_KEYS: List[str] = []
+    _CURRENT_KEY_IDX: int = 0
+
+    @staticmethod
+    def _load_serper_keys():
+        """Load multiple Serper API keys from local file for failover/rotation."""
+        if RealToolkit._SERPER_KEYS:
+            return
+        
+        path = "/home/tungnvt5re/research-projects/reinforcement_learning_intro_books/maveric_ijcai/src/api_key/serper.txt"
+        keys = []
+        if os.path.exists(path):
+            try:
+                with open(path, "r") as f:
+                    keys = [line.strip() for line in f if line.strip()]
+            except Exception as e:
+                print(f"        ⚠️ Error reading serper.txt: {e}")
+        
+        # Fallback to config key if file empty or missing
+        if not keys and SERPER_API_KEY:
+            keys = [SERPER_API_KEY]
+        
+        RealToolkit._SERPER_KEYS = keys
+        if keys:
+            print(f"        📡 Loaded {len(keys)} Serper API keys for rotation.")
+
+    @staticmethod
+    def _get_current_serper_key() -> Optional[str]:
+        RealToolkit._load_serper_keys()
+        if not RealToolkit._SERPER_KEYS:
+            return None
+        return RealToolkit._SERPER_KEYS[RealToolkit._CURRENT_KEY_IDX % len(RealToolkit._SERPER_KEYS)]
+
+    @staticmethod
+    def _rotate_serper_key() -> str:
+        RealToolkit._CURRENT_KEY_IDX += 1
+        new_idx = RealToolkit._CURRENT_KEY_IDX % len(RealToolkit._SERPER_KEYS)
+        print(f"        🔄 Serper quota reached. Rotating to key #{new_idx + 1}...")
+        return RealToolkit._SERPER_KEYS[new_idx]
+
     # ---------- Web search providers ----------
     @staticmethod
     def _serper_search(query: str, num: int = 6, timeout: float = 6.5) -> List[Dict[str, str]]:
-        if not SERPER_API_KEY:
+        RealToolkit._load_serper_keys()
+        if not RealToolkit._SERPER_KEYS:
             return []
-        try:
-            url = "https://google.serper.dev/search"
-            payload = json.dumps({"q": query[:200], "num": int(num)})
-            headers = {"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"}
-            resp = requests.post(url, headers=headers, data=payload, timeout=timeout)
-            if resp.status_code != 200:
+            
+        # Try all available keys if quota is hit
+        max_attempts = len(RealToolkit._SERPER_KEYS)
+        
+        for attempt in range(max_attempts):
+            current_key = RealToolkit._get_current_serper_key()
+            if not current_key:
+                break
+                
+            try:
+                url = "https://google.serper.dev/search"
+                payload = json.dumps({"q": query[:200], "num": int(num)})
+                headers = {"X-API-KEY": current_key, "Content-Type": "application/json"}
+                resp = requests.post(url, headers=headers, data=payload, timeout=timeout)
+                
+                # Check for quota limit or unauthorized
+                is_quota_error = resp.status_code in (403, 429)
+                if not is_quota_error and resp.status_code != 200:
+                    # Also check for quota messages in JSON even if status is weird
+                    resp_json = {}
+                    try:
+                        resp_json = resp.json()
+                    except:
+                        pass
+                    msg = str(resp_json.get("message", "")).lower()
+                    if "quota" in msg or "unauthorized" in msg or "api key" in msg:
+                        is_quota_error = True
+
+                if is_quota_error:
+                    if max_attempts > 1 and attempt < max_attempts - 1:
+                        RealToolkit._rotate_serper_key()
+                        continue
+                    else:
+                        return []
+                        
+                if resp.status_code != 200:
+                    return []
+                    
+                organic = resp.json().get("organic", []) or []
+                out: List[Dict[str, str]] = []
+                for r in organic[: int(num)]:
+                    out.append(
+                        {
+                            "title": (r.get("title") or "")[:200],
+                            "url": (r.get("link") or "")[:700],
+                            "snippet": (r.get("snippet") or "")[:900],
+                            "provider": "serper",
+                        }
+                    )
+                return out
+            except Exception:
+                # Connection errors or JSON parse errors
                 return []
-            organic = resp.json().get("organic", []) or []
-            out: List[Dict[str, str]] = []
-            for r in organic[: int(num)]:
-                out.append(
-                    {
-                        "title": (r.get("title") or "")[:200],
-                        "url": (r.get("link") or "")[:700],
-                        "snippet": (r.get("snippet") or "")[:900],
-                        "provider": "serper",
-                    }
-                )
-            return out
-        except Exception:
-            return []
+        return []
 
     @staticmethod
     def _ddg_search(query: str, max_results: int = 6) -> List[Dict[str, str]]:
@@ -1570,47 +1646,47 @@ Output only the rewritten factual claim (no quotes).
     @staticmethod
     def _extract_bridge_entities(text: str) -> Dict[str, Any]:
         """
-        Stage 1: Lightweight regex-based entity detection for bridge patterns.
-        Returns detected entities and pattern type without heavy NLP.
+        Stage 1: Enhanced regex-based entity detection.
+        Now supports lowercase descriptions and more flexible patterns.
         """
         entities = []
         pattern_type = None
         has_bridge = False
         
-        # Pattern 1: "the [ROLE] [ENTITY] [RELATION]" (HoVer-style)
-        # Example: "the artist Ossian Elgström studied with in 1907"
-        match = re.search(
-            r"the (artist|painter|athlete|fighter|person|meteorologist|actor|singer|writer|director|coach) ([A-Z][\w]+(?:\s+[A-Z][\w]+)+) (studied with|trained (?:by|with)|worked with|replaced|succeeded|composed (?:for|by))",
-            text
+        # Helper to clean and extract
+        def add_ent(e, p):
+            nonlocal has_bridge, pattern_type
+            if e and e.strip():
+                entities.append(e.strip())
+                pattern_type = p
+                has_bridge = True
+
+        # Pattern 1: "the [ROLE] that [ENTITY/DESC] [RELATION]"
+        # Example: "the artist that the illustrator of Exlex studied with"
+        m1 = re.search(
+            r"the (artist|painter|athlete|fighter|person|meteorologist|actor|singer|writer) (?:that )?(.+?) (studied with|trained (?:by|with)|worked with|replaced|succeeded|composed (?:for|by))",
+            text, re.IGNORECASE
         )
-        if match:
-            role, entity_name, relation = match.groups()
-            entities.append(entity_name)
-            pattern_type = f"{role}_{relation.replace(' ', '_')}"
-            has_bridge = True
-        
-        # Pattern 2: "[ENTITY1] and this/the [DESCRIPTION] both [ACTION]"
-        # Example: "Red White & Crüe and this athlete both fight"
-        match = re.search(
-            r"([A-Z][\w\s&]+) and (?:this|the) ([\w\s]+) both ([\w]+)",
-            text
-        )
-        if match:
-            entity1, description, action = match.groups()
-            entities.append(entity1.strip())
-            pattern_type = f"dual_entity_{action}"
-            has_bridge = True
-        
-        # Pattern 3: "at [PLACE] that [PROPERTY]"
-        # Example: "took place at an arena that currently goes by the name TD Garden"
-        match = re.search(
-            r"at (?:an|a|the) (arena|venue|location|building|stadium|theater) that (currently|formerly|now|previously)",
-            text
-        )
-        if match:
-            place_type, temporal = match.groups()
-            pattern_type = "place_evolution"
-            has_bridge = True
+        if m1:
+            add_ent(m1.group(2), f"{m1.group(1)}_{m1.group(3)}")
+
+        # Pattern 2: "[ENTITY1] and this/the [DESCRIPTION/ENTITY2] both [ACTION]"
+        if not has_bridge:
+            m2 = re.search(
+                r"(.+?) and (?:this|the) (.+?) both (\w+)",
+                text, re.IGNORECASE
+            )
+            if m2:
+                add_ent(m2.group(1), f"dual_entity_{m2.group(3)}")
+
+        # Pattern 3: Temporal/Location evolution
+        if not has_bridge:
+            m3 = re.search(
+                r"at (?:an|a|the) (.+?) that (?:currently|formerly|now|previously) (.+)",
+                text, re.IGNORECASE
+            )
+            if m3:
+                add_ent(m3.group(1), "place_evolution")
         
         return {
             "has_bridge": has_bridge,
@@ -1757,17 +1833,46 @@ Answer (entity name only, max 5 words):"""
         return all_hits
     
     @staticmethod
-    # ---------- Multi-hop Reasoning ----------
-    @staticmethod
     def _detect_multi_hop_claim(text: str) -> Optional[Dict[str, Any]]:
         """
-        Detect claims requiring multi-hop reasoning.
-        Returns info about relations if detected.
-        
-        Examples:
-        - "Obama's wife was born in Chicago" -> possessive
-        - "The author of Harry Potter lives in UK" -> relation
+        Enhanced multi-hop detection with LLM fallback.
         """
+        # 1. High-speed Regex Detection
+        entity_info = RealToolkit._extract_bridge_entities(text)
+        if entity_info.get("has_bridge"):
+            return {
+                "type": "bridge_entity",
+                "hint": f"Regex-detected {entity_info.get('pattern_type')}",
+                "entity_info": entity_info
+            }
+        
+        # 2. LLM Fallback Detection (for complex phrasing regex missed)
+        if len(text.split()) > 10:  # Only for long, complex claims
+            prompt = f"""Does the statement below require finding a 'bridge entity' to verify?
+(e.g., finding who someone studied with, or what an arena used to be called)
+
+Statement: "{text}"
+
+Answer YES or NO (strictly 1 word):"""
+            try:
+                res = client.chat.completions.create(
+                    model=JUDGE_MODEL,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.0,
+                    max_tokens=2
+                )
+                ans = (res.choices[0].message.content or "").strip().upper()
+                if "YES" in ans:
+                    # Fabricate entity_info for LLM decomposition stage to handle
+                    return {
+                        "type": "bridge_entity",
+                        "hint": "LLM-detected complex relation",
+                        "entity_info": {"has_bridge": True, "entities": [], "pattern_type": "complex"}
+                    }
+            except:
+                pass
+
+        # 3. Standard hop patterns (possessives/etc)
         text_lower = text.lower()
         
         # Possessive patterns: "X's Y", "Y of X"
@@ -2619,21 +2724,6 @@ Statement: {clean_fact}
                 all_serper: List[Dict[str, str]] = []
                 all_ddg: List[Dict[str, str]] = []
                 
-                # If multi-hop detected and decomposed successfully, use hybrid path
-                if sub_queries and len(sub_queries) >= 2:
-                    multihop_hits = RealToolkit._execute_hybrid_multihop(clean_fact, sub_queries)
-                    # Distribute hits between serper and ddg for compatibility
-                    for i, hit in enumerate(multihop_hits):
-                        if i % 2 == 0:
-                            all_serper.append(hit)
-                        else:
-                            all_ddg.append(hit)
-                else:
-                    # Standard search flow (existing code)
-                    queries_rounds: List[List[str]] = RealToolkit._make_queries(clean_fact)
-                    if FAST_MODE:
-                        queries_rounds = queries_rounds[:1]
-
                 def run_round(qs: List[str], round_idx: int) -> None:
                     nonlocal all_serper, all_ddg
                     fast_qs = qs[:2] if FAST_MODE else qs
@@ -2651,18 +2741,33 @@ Statement: {clean_fact}
                         all_ddg.extend(ddg_hits)
                         time.sleep(0.05)
 
-                for ridx, qs in enumerate(queries_rounds, start=1):
-                    run_round(qs, ridx)
+                # If multi-hop detected and decomposed successfully, use hybrid path
+                if sub_queries and len(sub_queries) >= 2:
+                    multihop_hits = RealToolkit._execute_hybrid_multihop(clean_fact, sub_queries)
+                    # Distribute hits between serper and ddg for compatibility
+                    for i, hit in enumerate(multihop_hits):
+                        if i % 2 == 0:
+                            all_serper.append(hit)
+                        else:
+                            all_ddg.append(hit)
+                else:
+                    # Standard search flow (existing code)
+                    queries_rounds = RealToolkit._make_queries(clean_fact)
+                    if FAST_MODE:
+                        queries_rounds = queries_rounds[:1]
 
-                    if (len(all_serper) == 0) and (len(all_ddg) == 0):
-                        time.sleep(0.25)
-                        print(f"        ⚠️ No hits, retrying round {ridx} once...")
+                    for ridx, qs in enumerate(queries_rounds, start=1):
                         run_round(qs, ridx)
 
-                    # Optimization: Lower threshold to exit search rounds earlier
-                    trusted_cnt = sum(1 for h in (all_serper + all_ddg) if _is_trusted_domain(h.get("url", "")))
-                    if trusted_cnt >= (2 if FAST_MODE else 4):
-                        break
+                        if (len(all_serper) == 0) and (len(all_ddg) == 0):
+                            time.sleep(0.25)
+                            print(f"        ⚠️ No hits, retrying round {ridx} once...")
+                            run_round(qs, ridx)
+
+                        # Optimization: Lower threshold to exit search rounds earlier
+                        trusted_cnt = sum(1 for h in (all_serper + all_ddg) if _is_trusted_domain(h.get("url", "")))
+                        if trusted_cnt >= (2 if FAST_MODE else 4):
+                            break
 
                 def dedup(hits: List[Dict[str, str]]) -> List[Dict[str, str]]:
                     seen = set()

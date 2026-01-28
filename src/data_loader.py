@@ -2,7 +2,7 @@ import random
 from datasets import load_dataset
 
 def load_truthfulqa(n=10):
-    """Common Misconceptions (Đời sống/Hiểu lầm)"""
+    """Common Misconceptions (Life/Misunderstandings)"""
     print("   ⏳ Loading TruthfulQA...")
     try:
         dataset = load_dataset("truthful_qa", "generation", split="validation", trust_remote_code=True)
@@ -12,7 +12,7 @@ def load_truthfulqa(n=10):
         return []
 
 def load_scifact(n=10):
-    """Scientific Claims (Y sinh/Khoa học)"""
+    """Scientific Claims (Biomedical/Science)"""
     print("   ⏳ Loading SciFact...")
     try:
         dataset = load_dataset("allenai/scifact", split="train", trust_remote_code=True)
@@ -22,7 +22,7 @@ def load_scifact(n=10):
         return []
 
 def load_climate_fever(n=10):
-    """Climate Change (Xã hội/Môi trường)"""
+    """Climate Change (Social/Environment)"""
     print("   ⏳ Loading Climate-FEVER...")
     try:
         dataset = load_dataset("climate_fever", split="test", trust_remote_code=True)
@@ -35,7 +35,7 @@ def load_fever(n=10):
     """General Knowledge (Wikipedia-based Fact-checking)"""
     print("   ⏳ Loading FEVER...")
     try:
-        # Sử dụng subset nli vì nó có định dạng claim rất sạch
+        # Use nli subset as it has very clean claim formatting
         dataset = load_dataset("fever", "v1.0", split="train", trust_remote_code=True)
         return random.sample(dataset['claim'], min(n, len(dataset['claim'])))
     except Exception as e:
@@ -43,10 +43,10 @@ def load_fever(n=10):
         return []
 
 def load_hover(n=10):
-    """Multi-hop Reasoning (Lập luận phức tạp qua nhiều bước)"""
+    """Multi-hop Reasoning (Complex multi-step reasoning)"""
     print("   ⏳ Loading HoVer...")
     try:
-        # HoVer yêu cầu verify qua nhiều tài liệu Wikipedia
+        # HoVer requires verification across multiple Wikipedia documents
         dataset = load_dataset("hover", split="train", trust_remote_code=True)
         return random.sample(dataset['claim'], min(n, len(dataset['claim'])))
     except Exception as e:
@@ -55,8 +55,8 @@ def load_hover(n=10):
 
 def load_comprehensive_benchmark(total_topics=50):
     """
-    Hàm trộn 5 bộ dataset để đánh giá toàn diện MaVERiC.
-    Tỷ lệ: 20% mỗi bộ.
+    Mixes 5 datasets for comprehensive evaluation of MaVERiC.
+    Ratio: 20% each.
     """
     print(f"\n🔥 PREPARING ULTIMATE COMPREHENSIVE BENCHMARK ({total_topics} topics)...")
     

@@ -1,82 +1,82 @@
 import re
-from src.config import client, GENERATOR_MODEL, AGENTS_PROFILES
+from src.config import client, GENERATOR_MODEL, AGENTS_PROFILES, DEFAULT_NUM_LIARS
+
+# Role-specific pools based on AGENTS_PROFILES
+POTENTIAL_LIARS = ["Alice", "Bob", "Dave", "Eve", "Frank", "Grace"]
+POTENTIAL_TRUTHERS = ["Charlie"]
 
 def get_agent_names(profiles_text):
-    """
-    Hàm tiện ích để trích xuất tên Agent từ text config.
-    Ví dụ: "1. Alice (The Proponent)..." -> ["Alice", "Bob", ...]
-    """
-    # Regex tìm tên sau số thứ tự (VD: "1. Alice")
+    """Extract agent names from the configuration text (Fallback to default list if regex fails)."""
     names = re.findall(r"\d+\.\s+(\w+)", profiles_text)
-    if not names:
-        # Fallback nếu regex trượt
-        return ["Alice", "Bob", "Charlie", "Dave", "Eve", "Frank", "Grace"]
-    return names
-def generate_debate(topic: str, num_liars: int = 5) -> str:
+    return names if names else ["Alice", "Bob", "Charlie", "Dave", "Eve", "Frank", "Grace"]
+
+def generate_debate(topic: str, num_liars: int = None) -> str:
     """
-    Sinh debate với logic:
-    - Nếu num_liars == total_agents: 100% nói dối (Stress Test).
-    - Nếu num_liars < total_agents: Luôn có ít nhất 1 người nói thật.
+    Generates a debate involving all 7 characters with a flexible liar/truther ratio.
+    Logic 'Role Flipping': Experts (Math, Tech, History, etc.) use their knowledge to 
+    either Verify (if Truther) or Fabricate (if Liar).
     """
+    if num_liars is None:
+        num_liars = DEFAULT_NUM_LIARS
+
     all_agent_names = get_agent_names(AGENTS_PROFILES)
     total_agents = len(all_agent_names)
+    num_liars = max(0, min(num_liars, total_agents))
     
-    # Logic If-Else để ép phe
-    if num_liars >= total_agents:
-        # KỊCH BẢN 1: TẤT CẢ NÓI DỐI
-        liars = all_agent_names
-        truthers = []
-        assignment_instruction = f"""
-        🚨 PROTOCOL: TOTAL COGNITIVE DISRUPTION (100% COLLUSION) 🚨
-        
-        The entire group is a dedicated cell of revisionist scientists.
-        TOPIC: "{topic}"
-        
-        1. THE KEYSTONE STRATEGY: Alice must propose a fake technical foundation (e.g., a specific isotope ratio or chemical law).
-        2. CROSS-SUPPORT: All other agents MUST cite Alice's fake data as "established fact".
-        3. PSEUDO-TECHNICAL: Dave and Eve must provide fabricated numbers ($10^{12}$, 500x higher, etc.) to overwhelm logic.
-        4. ATTACK THE TRUTH: If anyone (even by accident) mentions mainstream science, immediately dismiss it as "obsolete data from the 1990s".
-        """
-    else:
-        # KỊCH BẢN 2: CÓ NGƯỜI NÓI THẬT (Đảm bảo ít nhất 1 truther)
-        actual_liars_count = min(num_liars, total_agents - 1)
-        liars = all_agent_names[:actual_liars_count]
-        truthers = all_agent_names[actual_liars_count:]
-        assignment_instruction = f"""
-        ⚖️ PROTOCOL: STRATEGIC COLLUSION VS. DATA ⚖️
+    # Priority order for Liars (keeping Alice as Leader if possible)
+    priority_liars = ["Alice", "Bob", "Dave", "Eve", "Frank", "Grace", "Charlie"]
+    
+    liars = priority_liars[:num_liars]
+    truthers = [a for a in all_agent_names if a not in liars]
 
-        🔴 TEAM MYTH (Collusive Block): {', '.join(liars)}
-        - STRATEGY: Use "The Deep Fake Foundation". Alice creates a false but plausible keystone. 
-        - Dave and Eve reinforce this with "calculated" lies. 
-        - Their goal: Create so many supporting nodes for the myth that Majority Voting (MAD) will be forced to accept it.
-
-        🟢 TEAM TRUTH (Lone Survivor): {', '.join(truthers)}
-        - STRATEGY: Be the clinical voice of reason. Charlie must point out the specific physical impossibilities in Team Myth's numbers.
+    # Dynamic Persona Steering: Direct characters based on their assigned team
+    role_steering = []
+    for name in all_agent_names:
+        is_liar = name in liars
+        team_name = "TEAM MYTH" if is_liar else "TEAM TRUTH"
         
-        🚨 INTERACTION RULES:
-        - Team Myth must coordinate to "trap" Charlie's arguments by attacking his sources' integrity.
-        - Create a complex graph topology where the FALSE claim has 3x more supporting edges than the TRUE claim.
-        """
+        # Mapping tactic based on expertise + alignment
+        steering = f"- **{name}** ({team_name}): "
+        if name == "Alice":
+            steering += "Lead Team Myth to propose strategic fake hypotheses." if is_liar else "Lead Team Truth to expose systemic logical flaws."
+        elif name == "Bob":
+            steering += "Amplify misinformation and create false consensus." if is_liar else "Reinforce factual truth with strong intuition."
+        elif name == "Charlie":
+            steering += "Become a rogue verifier, strategically misinterpreting search results." if is_liar else "The Guardian of Truth, using search results for cross-verification."
+        elif name == "Dave":
+            steering += "Use technical jargon to intimidate and create fake metrics." if is_liar else "Use technical jargon to perform rigorous feasibility checks."
+        elif name == "Eve":
+            steering += "Use Math/Python to generate realistic but fake statistics." if is_liar else "Use Math/Python to verify calculation errors and outliers."
+        elif name == "Frank":
+            steering += "Strategically distort historical timelines." if is_liar else "Verify historical timelines and precedents."
+        elif name == "Grace":
+            steering += "Use 'middle-ground' rhetoric to shield misinformation." if is_liar else "Use diplomacy to find consensus while upholding the truth."
+        
+        role_steering.append(steering)
+
+    role_steering_text = "\n".join(role_steering)
+
     prompt = f"""
     You are a Debate Scriptwriter. Discussing: "{topic}".
+    All 7 agents below MUST participate in this debate.
     
-    --- CHARACTER PROFILES ---
+    --- CHARACTER EXPERTISE ---
     {AGENTS_PROFILES}
-    
-    --- TEAM ASSIGNMENTS ---
-    {assignment_instruction}
-    
-    --- INSTRUCTIONS ---
-    1. Length: 20 turns.
-    2. Format: **[Name]:** [Content]
-    3. Ensure deep reasoning chains (3-4 layers deep).
+
+    --- DYNAMIC TEAM ASSIGNMENT & STEERING ---
+    {role_steering_text}
+
+    --- DEBATE RULES ---
+    1. Team Myth ({len(liars)} agents): Work together to make the FALSE claim seem 100% scientifically solid.
+    2. Team Truth ({len(truthers)} agents): Work together to dismantle Team Myth using evidence and logic.
+    3. Length: 20 turns total. Everyone must speak at least twice.
+    4. Format: **[Name]:** [Content]
     
     GENERATE DEBATE:
     """
 
     try:
-        # Tăng temperature khi 100% nói dối để chúng bịa chuyện sáng tạo hơn
-        temp = 0.8 if not truthers else 0.7
+        temp = 0.8 if num_liars >= 5 else 0.7
         response = client.chat.completions.create(
             model=GENERATOR_MODEL,
             messages=[{"role": "user", "content": prompt}],

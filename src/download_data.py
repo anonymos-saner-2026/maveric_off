@@ -62,7 +62,7 @@ def sha256_file(path: Path) -> str:
 
 def requests_session() -> requests.Session:
     s = requests.Session()
-    # Một số mạng/ISP chặn, UA giúp đỡ bị 403
+    # Some networks/ISPs block, UA help avoid 403
     s.headers.update({
         "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
         "Accept": "*/*",

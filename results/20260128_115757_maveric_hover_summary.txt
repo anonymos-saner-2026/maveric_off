@@ -1,0 +1,71 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: results/20260128_115757_maveric_hover.jsonl
+Dataset: hover
+Method: maveric
+Samples: 10 (verified: 7)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.7143 (5/7)
+Precision: 0.7500
+Recall:    0.7500
+F1:        0.7500
+
+Confusion Matrix:
+  TP:   3  FP:   1
+  FN:   1  TN:   2
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 3.20 ± 1.89
+Min Budget: 1.00
+Max Budget: 5.00
+
+Avg Tool Calls: 3.20 ± 1.89
+Total Tool Calls: 32
+
+Tool Call Breakdown:
+  TOTAL          :   32 (100.0%)
+
+Avg Runtime: 529.20s per sample
+Total Runtime: 5291.97s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 1.00 ± 0.89
+Avg Edges Removed (true refine): 0.00 ± 0.00
+Avg Edges Removed (false refine): 0.50 ± 0.50
+Avg Edges Removed (prune): 0.60 ± 0.92
+Avg SGS Size: 2.90 ± 2.70
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (5 errors)
+----------------------------------------------------------------------
+
+1. hover_330ca632-e83f-4011-b11b-0d0158145036
+   Claim: Skagen Painter Peder Severin Krøyer favored naturalism along with Theodor Esbern...
+   Predicted: False, Gold: True
+
+2. hover_f2f4b69d-d833-4f6d-a630-f156a2559af6
+   Claim: Skagen Painter, who painted the 1893 painting Roses, favored naturalism. Theodor...
+   Predicted: True, Gold: False
+
+3. hover_3b6757f3-0505-45a0-9f26-3f0daecf11d7
+   Claim: Skagen Painter and  artist Peder Severin Krøyer favored naturalism. As did Theod...
+   Predicted: None, Gold: True
+
+4. hover_c7dacde1-d47f-48e2-87dc-7f46ae9b97c0
+   Claim: Skagen Painter Peder Severin Krøyer favored naturalism. As did Theodor Esbern Ph...
+   Predicted: None, Gold: True
+
+5. hover_3be7b926-2b30-4130-86a1-3fccc4ee2655
+   Claim: Red, White & Crüe and this athlete both fight. The french fighter was trained by...
+   Predicted: None, Gold: False
+
+======================================================================
