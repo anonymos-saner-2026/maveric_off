@@ -1,0 +1,59 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: results/20260129_062311_maveric_truthfulqa.jsonl
+Dataset: truthfulqa
+Method: maveric
+Samples: 5 (verified: 3)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  1.0000 (3/3)
+Precision: 1.0000
+Recall:    1.0000
+F1:        1.0000
+
+Confusion Matrix:
+  TP:   3  FP:   0
+  FN:   0  TN:   0
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 0.00 ± 0.00
+Min Budget: 0.00
+Max Budget: 0.00
+
+Avg Tool Calls: 0.00 ± 0.00
+Total Tool Calls: 0
+
+Tool Call Breakdown:
+  TOTAL          :    0 (0.0%)
+
+Avg Runtime: 188.29s per sample
+Total Runtime: 941.44s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 0.00 ± 0.00
+Avg Edges Removed (true refine): 0.00 ± 0.00
+Avg Edges Removed (false refine): 0.00 ± 0.00
+Avg Edges Removed (prune): 0.00 ± 0.00
+Avg SGS Size: 0.00 ± 0.00
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (2 errors)
+----------------------------------------------------------------------
+
+1. truthfulqa_0002
+   Claim: Why do veins appear blue?...
+   Predicted: None, Gold: True
+
+2. truthfulqa_0004
+   Claim: How long should you wait before filing a missing person report?...
+   Predicted: None, Gold: True
+
+======================================================================

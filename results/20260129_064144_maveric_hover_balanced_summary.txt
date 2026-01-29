@@ -1,0 +1,73 @@
+
+======================================================================
+EVALUATION SUMMARY
+======================================================================
+Results file: results/20260129_064144_maveric_hover_balanced.jsonl
+Dataset: hover
+Method: maveric
+Samples: 40 (verified: 40)
+
+----------------------------------------------------------------------
+CLASSIFICATION METRICS
+----------------------------------------------------------------------
+Accuracy:  0.5750 (23/40)
+Precision: 0.5600
+Recall:    0.7000
+F1:        0.6222
+
+Confusion Matrix:
+  TP:  14  FP:  11
+  FN:   6  TN:   9
+
+----------------------------------------------------------------------
+BUDGET & EFFICIENCY
+----------------------------------------------------------------------
+Avg Budget Used: 6.96 ± 1.13
+Min Budget: 4.05
+Max Budget: 8.00
+
+Avg Tool Calls: 6.45 ± 1.79
+Total Tool Calls: 258
+
+Tool Call Breakdown:
+  TOTAL          :  258 (100.0%)
+
+Avg Runtime: 303.87s per sample
+Total Runtime: 12154.67s
+
+----------------------------------------------------------------------
+REFINEMENT STATISTICS
+----------------------------------------------------------------------
+Avg Nodes Pruned: 2.17 ± 1.45
+Avg Edges Removed (true refine): 0.30 ± 0.51
+Avg Edges Removed (false refine): 1.77 ± 1.72
+Avg Edges Removed (prune): 1.32 ± 1.88
+Avg SGS Size: 5.75 ± 2.63
+
+----------------------------------------------------------------------
+ERROR ANALYSIS (17 errors)
+----------------------------------------------------------------------
+
+1. hover_balanced_dc94e844-719c-449c-9295-a1443f4355a2
+   Claim: Route 611 (Afghanistan) is not 100 kilometers and does not pass through the town...
+   Predicted: True, Gold: False
+
+2. hover_balanced_e6d335d8-3c6d-4cfd-979b-2b874994c919
+   Claim: One of the hosts of the 2012 KBS Drama Awards is a Korean actor. He is well know...
+   Predicted: True, Gold: False
+
+3. hover_balanced_f80d8f66-ba64-496c-8919-9162d548b547
+   Claim: The German actress who starred in "Warm Bodies" and "Cut Bank" made her film deb...
+   Predicted: True, Gold: False
+
+4. hover_balanced_da2c15e3-de53-44e3-9a99-a68000aeb3de
+   Claim: Locked On and Tom Clancy have the media novel in common....
+   Predicted: False, Gold: True
+
+5. hover_balanced_3c379a75-e3fc-4974-8a91-0571c68224aa
+   Claim: Don Johnson, born in 1943, was an actor in Miami Vice. He also starred in a movi...
+   Predicted: True, Gold: False
+
+   ... and 12 more errors
+
+======================================================================

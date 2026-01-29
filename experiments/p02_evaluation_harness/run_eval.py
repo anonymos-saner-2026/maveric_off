@@ -47,6 +47,12 @@ from src.baselines.class_e import (  # noqa: E402
     MADFactBaseline,
     GKMADBaseline,
 )
+from src.baselines.class_f import (  # noqa: E402
+    F1MADAdversaryFilterBaseline,
+    F2EvidenceRequirementBaseline,
+    F3GraphConsistencyGatingSolver,
+)
+from src.core.baselines import _build_pseudo_transcript_from_graph  # noqa: E402
 from dataset_loader import load_dataset_by_name  # noqa: E402
 
 from src.agents.debater import generate_debate  # noqa: E402
@@ -369,6 +375,14 @@ def _build_solver(
             delta_support_to_root=0.8,
             tool_costs=tool_costs,
         )
+    if key in {"f3_graph_gate", "f3_graph_consistency", "f3"}:
+        return F3GraphConsistencyGatingSolver(
+            graph=graph,
+            budget=budget,
+            topk_counterfactual=8,
+            delta_support_to_root=0.8,
+            tool_costs=tool_costs,
+        )
 
     raise ValueError(f"Unknown baseline: {baseline}")
 
@@ -383,6 +397,15 @@ def _build_class_e_baseline(baseline: str):
         return MADFactBaseline()
     if key in {"e4_gkmad", "gkmad"}:
         return GKMADBaseline()
+    return None
+
+
+def _build_class_f_baseline(baseline: str):
+    key = str(baseline or "").lower().strip()
+    if key in {"f1_mad_filter", "f1"}:
+        return F1MADAdversaryFilterBaseline()
+    if key in {"f2_judge_evidence", "f2"}:
+        return F2EvidenceRequirementBaseline()
     return None
 
 
@@ -452,6 +475,46 @@ def run_solver_on_statement(
         pair_role=pair_role,
     )
     _apply_tool_costs(graph, tool_costs)
+
+    baseline_f = _build_class_f_baseline(baseline)
+    if baseline_f is not None:
+        start = time.time()
+        transcript = _build_pseudo_transcript_from_graph(graph)
+        verdict = baseline_f.verify(
+            claim=statement,
+            transcript=transcript,
+            graph=graph,
+            budget=float(budget),
+        )
+        budget_used = float(getattr(baseline_f, "budget_spent", 0.0) or 0.0)
+        tool_calls_total = int(getattr(baseline_f, "tool_calls", 0) or 0)
+        baseline_metrics = getattr(baseline_f, "stats", None)
+        elapsed = time.time() - start
+
+        vt = 1 if verdict is True else 0
+        vf = 1 if verdict is False else 0
+
+        return {
+            "statement": statement,
+            "verdict": None if verdict is None else bool(verdict),
+            "y_direct": None,
+            "root_in_ext": False,
+            "unverified": verdict is None,
+            "verified_true": int(vt),
+            "verified_false": int(vf),
+            "score": 0.0,
+            "final_ext_size": 0,
+            "budget_used": round(float(budget_used), 2),
+            "budget_left": round(max(0.0, float(budget) - float(budget_used)), 2),
+            "tool_calls_total": int(tool_calls_total),
+            "baseline_metrics": baseline_metrics,
+            "pruned": 0,
+            "edges_removed": 0,
+            "edges_removed_false_refine": 0,
+            "edges_removed_pruned": 0,
+            "error": None,
+            "runtime_s": round(elapsed, 2),
+        }
 
     solver = _build_solver(
         baseline=baseline,
@@ -777,7 +840,8 @@ def main() -> None:
         default="maveric",
         help=(
             "Baseline: maveric, d1_random, d2_uncertainty, d3_pagerank, d3_degree, "
-            "d3_betweenness, d4_distance, d5_proxy, e1_mav, e2_bon_mav, e3_mad_fact, e4_gkmad"
+            "d3_betweenness, d4_distance, d5_proxy, e1_mav, e2_bon_mav, e3_mad_fact, "
+            "e4_gkmad, f1_mad_filter, f2_judge_evidence, f3_graph_gate"
         ),
     )
     parser.add_argument("--dataset", type=str, required=True)

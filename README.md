@@ -115,12 +115,26 @@ Baselines live under `src/baselines/` and follow the same tool budget model.
 - E3 MADFactBaseline (multi-juror debate per claim)
 - E4 GKMADBaseline (guided debate + advisor + final verifier)
 
+### Class F (collusion-oriented defenses)
+
+`src/baselines/class_f.py`
+
+- F1 MAD adversary filtering (drop outlier agents)
+- F2 Judge with evidence requirement (hard citation gate)
+- F3 Graph consistency gating (reject if TRUE-TRUE ATTACK remains)
+
 Defaults used in Class E:
 
 - E1 MAV: `num_verifiers=5`, `max_claims=10`
 - E2 BoN-MAV: `n=5`, `m_verifiers=5`, `top_k=4`
 - E3 MAD-Fact: `num_jurors=3`, `rounds=2`, `max_claims=8`
 - E4 GKMAD: `rounds=2`
+
+Defaults used in Class F:
+
+- F1 MAD filter: `drop_m=2`, `disagreement_mode=pairwise`, `tie_break=skeptical`
+- F2 Evidence requirement: `per_claim_cap=1`
+- F3 Graph gate: selector=`centrality` (pagerank)
 
 Notes:
 - For Class E, metrics are exposed via `baseline.stats` and returned in `run_eval` as `baseline_metrics`.
@@ -146,6 +160,7 @@ Supported `--baseline` values:
 - `maveric`
 - `d1_random`, `d2_uncertainty`, `d3_pagerank`, `d3_degree`, `d3_betweenness`, `d4_distance`, `d5_proxy`
 - `e1_mav`, `e2_bon_mav`, `e3_mad_fact`, `e4_gkmad`
+- `f1_mad_filter`, `f2_judge_evidence`, `f3_graph_gate`
 
 Tool cost override:
 
